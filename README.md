@@ -4,6 +4,8 @@
 > Catch agent-frontend schema drifts in CI before they break chat conversations in production.
 
 [![CI](https://github.com/DevJoaoLopes/agent-interaction-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/DevJoaoLopes/agent-interaction-kit/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/%40agent-interaction-kit%2Fcore?logo=npm)](https://www.npmjs.com/package/@agent-interaction-kit/core)
+[![npm downloads](https://img.shields.io/npm/dm/%40agent-interaction-kit%2Fcore?logo=npm)](https://www.npmjs.com/package/@agent-interaction-kit/core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
@@ -39,8 +41,18 @@ yarn add -D @agent-interaction-kit/core
 
 ### 2. Run Compatibility Check
 
+Run the locally installed `aik` binary:
+
 ```bash
 npx aik check --provider ./backend/aik.provider.json --consumer ./frontend/aik.consumer.json
+```
+
+For an ad-hoc check without adding AIK to your project first, invoke the package directly:
+
+```bash
+npx @agent-interaction-kit/core check \
+  --provider ./backend/aik.provider.json \
+  --consumer ./frontend/aik.consumer.json
 ```
 
 Output:
