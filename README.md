@@ -3,7 +3,7 @@
 > **Contract testing for tool calls between backend AI agents and frontend web apps.**  
 > Catch agent-frontend schema drifts in CI before they break chat conversations in production.
 
-[![CI](https://github.com/DevJoaoLopes/agent-interaction-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/DevJoaoLopes/agent-interaction-kit/actions/workflows/ci.yml)
+[![CI Matrix: Node 20, 22, 24](https://github.com/DevJoaoLopes/agent-interaction-kit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DevJoaoLopes/agent-interaction-kit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
