@@ -1,0 +1,29 @@
+{
+  "$schema": "https://aik.dev/schemas/v1/provider.json",
+  "schemaVersion": "1.0.0",
+  "producer": {
+    "name": "enterprise-agent-backend",
+    "version": "1.0.0",
+    "buildId": "git-b101"
+  },
+  "protocolProfile": "ag-ui@0.1",
+  "contextProfile": "default",
+  "tools": [
+    {
+      "name": "confirmAction",
+      "executionSide": "frontend",
+      "parameters": {
+        "type": "object",
+        "properties": { "actionId": { "type": "string" } }
+      },
+      "returns": {
+        "format": "json",
+        "schema": {
+          "type": "object",
+          "properties": { "confirmed": { "type": "boolean" } },
+          "required": ["confirmed"]
+        }
+      }
+    }
+  ]
+}

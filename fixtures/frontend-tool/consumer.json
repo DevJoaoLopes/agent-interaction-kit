@@ -1,0 +1,29 @@
+{
+  "$schema": "https://aik.dev/schemas/v1/consumer.json",
+  "schemaVersion": "1.0.0",
+  "consumer": {
+    "name": "portal-web-frontend",
+    "version": "1.0.0",
+    "buildId": "git-c101"
+  },
+  "protocolProfile": "ag-ui@0.1",
+  "contextProfile": "default",
+  "requires": [
+    {
+      "toolName": "confirmAction",
+      "executionSide": "frontend",
+      "expectedParameters": {
+        "type": "object",
+        "properties": { "actionId": { "type": "string" } }
+      },
+      "expectedReturns": {
+        "format": "json",
+        "schema": {
+          "type": "object",
+          "properties": { "confirmed": { "type": "boolean" } },
+          "required": ["confirmed"]
+        }
+      }
+    }
+  ]
+}

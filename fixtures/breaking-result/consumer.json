@@ -1,0 +1,24 @@
+{
+  "$schema": "https://aik.dev/schemas/v1/consumer.json",
+  "schemaVersion": "1.0.0",
+  "consumer": {
+    "name": "portal-web-frontend",
+    "version": "1.0.0",
+    "buildId": "git-c101"
+  },
+  "protocolProfile": "ag-ui@0.1",
+  "contextProfile": "default",
+  "requires": [
+    {
+      "toolName": "searchDocuments",
+      "executionSide": "backend",
+      "expectedReturns": {
+        "format": "json",
+        "schema": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      }
+    }
+  ]
+}

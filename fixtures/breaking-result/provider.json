@@ -1,0 +1,34 @@
+{
+  "$schema": "https://aik.dev/schemas/v1/provider.json",
+  "schemaVersion": "1.0.0",
+  "producer": {
+    "name": "enterprise-agent-backend",
+    "version": "2.0.0",
+    "buildId": "git-b201"
+  },
+  "protocolProfile": "ag-ui@0.1",
+  "contextProfile": "default",
+  "tools": [
+    {
+      "name": "searchDocuments",
+      "executionSide": "backend",
+      "parameters": {
+        "type": "object",
+        "properties": { "query": { "type": "string" } },
+        "required": ["query"]
+      },
+      "returns": {
+        "format": "json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "items": { "type": "array" },
+            "total": { "type": "number" }
+          },
+          "required": ["items", "total"]
+        }
+      },
+      "requiresApproval": false
+    }
+  ]
+}
