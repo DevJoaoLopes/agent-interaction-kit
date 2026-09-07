@@ -1,202 +1,153 @@
 # Agent Interaction Kit (AIK)
 
-> **Tool and interaction contract testing for AG-UI applications.**  
-> Catch agent-frontend tool divergences before they break user conversations in production.
+> **Contract testing for tool calls between backend AI agents and frontend web apps.**  
+> Catch agent-frontend schema drifts in CI before they break chat conversations in production.
 
-[![CI](https://github.com/joaopiga/agent-interaction-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/joaopiga/agent-interaction-kit/actions/workflows/ci.yml)
+[![CI](https://github.com/DevJoaoLopes/agent-interaction-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/DevJoaoLopes/agent-interaction-kit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
 ---
 
-## 🎯 The Problem
+## 💡 Why AIK?
 
-In agentic UI applications (powered by protocols like **AG-UI** or libraries like **CopilotKit**), the backend agent (e.g., **Microsoft Agent Framework (.NET)** or **Mastra (TypeScript)**) and the frontend web client (React) are frequently built and deployed by separate teams on independent release cycles.
+In modern agentic applications (using frameworks like **Mastra**, **Microsoft Agent Framework**, or **LangGraph** paired with UI protocols like **AG-UI** or **CopilotKit**), the backend agent and frontend web client evolve independently.
 
-When tool definitions change—such as when a backend tool changes its return payload from a list `[]` to an object `{ items: [...], total: 10 }`, or adds a new mandatory argument:
-- The Server-Sent Events (SSE) stream remains syntactically valid.
-- No HTTP or network error is raised.
-- **The frontend UI silently misbehaves or chat responses become incoherent**, requiring manual chat testing to catch bugs.
+When a tool schema changes—such as renaming a return field, dropping a required property, or adding a mandatory argument:
+- The streaming connection remains HTTP 200 OK.
+- No network error is thrown.
+- **The frontend silently breaks** (e.g. blank UI widgets, failed client-side action execution, or incoherent chat turns).
 
-**Agent Interaction Kit (AIK)** solves this by introducing **Consumer-Driven Contracts (CDC)** specifically adapted to agent tool interactions.
+**Agent Interaction Kit (AIK)** solves this by applying **Consumer-Driven Contracts (CDC)** to agent tool interactions, catching incompatibilities statically in CI before deployment.
 
 ---
 
-## 🚀 Quickstart
+## ⚡ Quickstart
 
 ### 1. Install
 
 ```bash
-# Using pnpm
+# pnpm
 pnpm add -D @agent-interaction-kit/core
 
-# Using npm
+# npm
 npm install --save-dev @agent-interaction-kit/core
+
+# yarn
+yarn add -D @agent-interaction-kit/core
 ```
 
-### 2. Verify Contracts in CI
+### 2. Run Compatibility Check
 
 ```bash
-# Compare candidate backend manifest against production frontend expectations
 npx aik check --provider ./backend/aik.provider.json --consumer ./frontend/aik.consumer.json
 ```
 
-#### Exit Codes
-- `0`: **PASS** — All tools and schemas are fully compatible.
-- `1`: **FAIL** — Breaking change or incompatible schema detected.
-- `2`: **ERROR / UNKNOWN** — Missing files, syntax error, or schema constructs outside the verifiable subset (when `--strict` is enabled).
+Output:
+```text
+✔ AIK Check Passed: all tools compatible (context: "default")
+  Producer Build: git-b101 | Consumer Build: git-c101
 
----
-
-## 📖 How It Works: Consumer-Driven Contracts (CDC)
-
-AIK decouples backend and frontend through two independent JSON artifacts:
-
-### 1. Provider Manifest (`aik.provider.json`)
-Published by the backend during build:
-```json
-{
-  "$schema": "https://aik.dev/schemas/v1/provider.json",
-  "schemaVersion": "1.0.0",
-  "producer": {
-    "name": "agent-backend",
-    "version": "2.0.0",
-    "buildId": "git-b201"
-  },
-  "protocolProfile": "ag-ui@0.1",
-  "contextProfile": "default",
-  "tools": [
-    {
-      "name": "searchDocuments",
-      "executionSide": "backend",
-      "parameters": {
-        "type": "object",
-        "properties": { "query": { "type": "string" } },
-        "required": ["query"]
-      },
-      "returns": {
-        "format": "json",
-        "schema": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": { "id": { "type": "string" }, "title": { "type": "string" } },
-            "required": ["id", "title"]
-          }
-        }
-      }
-    }
-  ]
-}
-```
-
-### 2. Consumer Expectations (`aik.consumer.json`)
-Published by the frontend during build:
-```json
-{
-  "$schema": "https://aik.dev/schemas/v1/consumer.json",
-  "schemaVersion": "1.0.0",
-  "consumer": {
-    "name": "web-frontend",
-    "version": "1.0.0",
-    "buildId": "git-c101"
-  },
-  "protocolProfile": "ag-ui@0.1",
-  "contextProfile": "default",
-  "requires": [
-    {
-      "toolName": "searchDocuments",
-      "executionSide": "backend",
-      "expectedReturns": {
-        "format": "json",
-        "schema": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": { "id": { "type": "string" } },
-            "required": ["id"]
-          }
-        }
-      }
-    }
-  ]
-}
+Summary: 3 tools checked, 0 diagnostics.
 ```
 
 ---
 
-## 🔍 Diagnostic Catalog
+## 🔍 How It Works
 
-| Code | Category | Description |
-| :--- | :--- | :--- |
-| `AIK-TOOL-001` | Tool Presence | Required tool is not declared by provider for the active context profile. |
-| `AIK-TOOL-002` | Execution Side | `executionSide` mismatch (`backend` vs `frontend`). |
-| `AIK-INPUT-001` | Arguments | Provider requires mandatory argument that consumer does not supply. |
-| `AIK-INPUT-002` | Arguments | Enum restriction: consumer supplies a value not accepted by callee. |
-| `AIK-RESULT-001` | Results | Root type mismatch (e.g. `array` vs `object`). |
-| `AIK-RESULT-002` | Results | Required field expected by consumer is missing or optional in provider return. |
-| `AIK-SCHEMA-001` | Safety | Schema contains unsupported construct (`not`, complex pattern). Returns `unknown`. |
+AIK decouples teams through two lightweight, version-controlled JSON manifests:
+
+```
+┌─────────────────────────┐          ┌─────────────────────────┐
+│   aik.provider.json     │          │   aik.consumer.json     │
+│ (Backend Tool Manifest) │          │ (Frontend Expectations) │
+└────────────┬────────────┘          └────────────┬────────────┘
+             │                                    │
+             └──────────────► aik check ◄─────────┘
+                                 │
+                     ┌───────────┴───────────┐
+                     │ Exit 0: Pass          │
+                     │ Exit 1: Breaking Diff │
+                     │ Exit 2: Unknown/Error │
+                     └───────────────────────┘
+```
+
+1. **`aik.provider.json`**: Published by the backend to declare provided tools, parameters, return schemas, and execution side (`backend` or `frontend`).
+2. **`aik.consumer.json`**: Published by the frontend to declare required tools, expected parameters, and expected return structures.
+3. **`aik check`**: Evaluates directional compatibility:
+   - **Tool Presence**: Verifies required tools exist.
+   - **Arguments Contravariance**: Ensures the caller satisfies all mandatory arguments and enum restrictions. Supports reverse polarity for frontend-side tools (`executionSide: "frontend"`).
+   - **Return Covariance**: Ensures the producer provides all fields expected by the UI.
+
+> 💡 **Tip:** You don't have to write these manifests by hand! Use our ready-to-use Agent Skill at [`skills/generate-contracts/SKILL.md`](skills/generate-contracts/SKILL.md) to let your AI coding assistant (Cursor, Antigravity, Copilot) extract contracts directly from your C# and TypeScript code.
 
 ---
 
-## 🤖 AI-Assisted Contract Generation (Agent Skill)
+## 🚦 CI/CD Integration
 
-AIK comes equipped with an Agent Skill specification at [`skills/generate-contracts/SKILL.md`](skills/generate-contracts/SKILL.md) compatible with coding assistants (Google Antigravity, Cursor, Claude Code, GitHub Copilot).
+Add contract verification directly to your GitHub Actions pipeline:
 
-It automatically scans:
-- **C# / .NET**: Methods decorated with `[AIFunction]`, `[Description]`, or Semantic Kernel plugins.
-- **TypeScript / React**: Calls to `useCopilotAction` and UI components rendering tool returns.
+```yaml
+- name: Verify Agent Interaction Contracts
+  run: |
+    npx aik check \
+      --provider ./apps/backend/aik.provider.json \
+      --consumer ./apps/frontend/aik.consumer.json \
+      --format junit \
+      --output test-results/aik.xml
+```
 
-And generates both `aik.provider.json` and `aik.consumer.json` with zero manual schema writing.
+### Exit Codes
+
+| Exit Code | Status | Meaning |
+| :---: | :--- | :--- |
+| **`0`** | `PASS` | All tools and schemas are fully compatible. |
+| **`1`** | `FAIL` | Breaking contract change detected (CI build should fail). |
+| **`2`** | `ERROR` / `UNKNOWN` | Missing files, invalid JSON, or unanalyzable schema (when `--strict` is enabled). |
 
 ---
 
-## 🛠️ CLI Options
+## 🛠️ CLI Reference
 
 ```bash
-Usage: aik check [options]
-
-Options:
-  -p, --provider <path>  Path to provider manifest (aik.provider.json) [required]
-  -c, --consumer <path>  Path to consumer expectations (aik.consumer.json) [required]
-  --context <profile>    Context profile to evaluate (default: "default")
-  -f, --format <format>  Output format: "terminal", "json", "junit" (default: "terminal")
-  -o, --output <path>    Write report to file instead of stdout
-  --strict               Treat unknown/inconclusive schemas as failure (exit code 2)
-  -h, --help             Display help for command
+aik check --provider <path> --consumer <path> [options]
 ```
+
+| Option | Description | Default |
+| :--- | :--- | :--- |
+| `-p, --provider <path>` | Path to provider manifest (`aik.provider.json`) | *required* |
+| `-c, --consumer <path>` | Path to consumer expectations (`aik.consumer.json`) | *required* |
+| `--context <profile>` | Context profile to evaluate | `"default"` |
+| `-f, --format <format>` | Output format: `terminal`, `json`, `junit` | `terminal` |
+| `-o, --output <path>` | Write report to file (creates directories automatically) | stdout |
+| `--strict` | Treat unknown/inconclusive schemas as failure (exit code 2) | `false` |
 
 ---
 
-## 📦 Programmatic Usage
+## 📦 Programmatic API
 
-AIK is structured as a modular TypeScript library with dedicated subpath exports:
+AIK can also be imported as a library in Node.js / TypeScript:
 
 ```typescript
 import { parseProviderManifest, parseConsumerExpectations } from "@agent-interaction-kit/core/contracts";
 import { evaluateCompatibility } from "@agent-interaction-kit/core/core";
 import { formatTerminalReport } from "@agent-interaction-kit/core/reporters";
 
-const provider = parseProviderManifest(rawProviderJson);
-const consumer = parseConsumerExpectations(rawConsumerJson);
+const provider = parseProviderManifest(providerJsonContent);
+const consumer = parseConsumerExpectations(consumerJsonContent);
 
 if (provider.ok && consumer.ok) {
   const report = evaluateCompatibility(provider.data, consumer.data);
   console.log(formatTerminalReport(report));
+  
+  if (report.status === "fail") {
+    process.exit(1);
+  }
 }
 ```
 
 ---
 
-## 🗺️ Roadmap
-
-- [x] **M1 (Current):** CDC Contracts, Directional Rule Engine, Multi-format Reporters, CLI, and Agent Skill.
-- [ ] **M2:** Frontend Runtime Guard (Middleware for AG-UI and CopilotKit client actions).
-- [ ] **M3:** Microsoft Agent Framework (.NET MAF) automatic manifest exporter.
-- [ ] **M4:** Mastra automatic manifest exporter.
-- [ ] **M5:** Alfa release with E2E sample application.
-
----
-
 ## 📄 License
 
-MIT © [João Piga](https://github.com/joaopiga)
+MIT © [João Victor Lopes](https://github.com/DevJoaoLopes)
