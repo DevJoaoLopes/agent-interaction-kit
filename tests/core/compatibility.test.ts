@@ -143,4 +143,91 @@ describe("Compatibility Engine", () => {
     expect(report.status).toBe("unknown");
     expect(report.diagnostics.some((d) => d.code === "AIK-SCHEMA-001")).toBe(true);
   });
+
+  it("fails with AIK-INPUT-002 when consumer allows enum values not accepted by provider", () => {
+    const providerWithEnum: ProviderManifest = {
+      ...baseProvider,
+      tools: [
+        {
+          ...baseProvider.tools[0],
+          parameters: {
+            type: "object",
+            properties: {
+              query: { type: "string" },
+              status: { enum: ["active", "archived"] },
+            },
+            required: ["query"],
+          },
+        },
+      ],
+    };
+
+    const consumerWithBroaderEnum: ConsumerExpectations = {
+      ...baseConsumer,
+      requires: [
+        {
+          toolName: "searchDocuments",
+          executionSide: "backend",
+          expectedParameters: {
+            type: "object",
+            properties: {
+              query: { type: "string" },
+              status: { enum: ["active", "archived", "pending"] },
+            },
+            required: ["query"],
+          },
+        },
+      ],
+    };
+
+    const report = evaluateCompatibility(providerWithEnum, consumerWithBroaderEnum);
+    expect(report.status).toBe("fail");
+    const diag = report.diagnostics.find((d) => d.code === "AIK-INPUT-002");
+    expect(diag).toBeDefined();
+    expect(diag?.message).toContain("pending");
+  });
+
+  it("evaluates frontend tool argument contravariance in reverse direction", () => {
+    const frontendProvider: ProviderManifest = {
+      ...baseProvider,
+      tools: [
+        {
+          name: "showModal",
+          executionSide: "frontend",
+          parameters: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+            },
+          },
+          returns: { format: "json" },
+        },
+      ],
+    };
+
+    const frontendConsumerWithRequired: ConsumerExpectations = {
+      ...baseConsumer,
+      requires: [
+        {
+          toolName: "showModal",
+          executionSide: "frontend",
+          expectedParameters: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              confirmButtonText: { type: "string" },
+            },
+            required: ["confirmButtonText"],
+          },
+        },
+      ],
+    };
+
+    // Consumer (frontend) requires confirmButtonText, but provider (backend emitter) does not declare it
+    const report = evaluateCompatibility(frontendProvider, frontendConsumerWithRequired);
+    expect(report.status).toBe("fail");
+    const diag = report.diagnostics.find((d) => d.code === "AIK-INPUT-001");
+    expect(diag).toBeDefined();
+    expect(diag?.message).toContain('consumer requires mandatory argument "confirmButtonText"');
+  });
 });

@@ -29,21 +29,68 @@ export function checkArguments(
     return diagnostics;
   }
 
-  if (isServerExecution) {
-    // When executing on backend, consumer calls tool.
-    // Provider's required parameters must be supported by the consumer.
-    const providerRequired = providerTool.parameters.required || [];
-    const consumerProperties = Object.keys(consumerExpectedParams.properties || {});
-    const consumerRequired = consumerExpectedParams.required || [];
+  // Directional evaluation:
+  // When executionSide === "backend", the caller/emitter is the consumer (frontend),
+  // and the callee/receptor is the provider (backend).
+  // When executionSide === "frontend", the caller/emitter is the provider (backend),
+  // and the callee/receptor is the consumer (frontend).
+  const emitterParams = isServerExecution ? consumerExpectedParams : providerTool.parameters;
+  const receptorParams = isServerExecution ? providerTool.parameters : consumerExpectedParams;
+  const emitterSide = isServerExecution ? "consumer" : "provider";
+  const receptorSide = isServerExecution ? "provider" : "consumer";
 
-    for (const reqField of providerRequired) {
-      if (!consumerProperties.includes(reqField) && !consumerRequired.includes(reqField)) {
+  // 1. Mandatory Arguments (AIK-INPUT-001)
+  // Callee/receptor required parameters must be declared or guaranteed by caller/emitter.
+  const receptorRequired = receptorParams.required || [];
+  const emitterProperties = Object.keys(emitterParams.properties || {});
+  const emitterRequired = emitterParams.required || [];
+
+  for (const reqField of receptorRequired) {
+    if (!emitterProperties.includes(reqField) && !emitterRequired.includes(reqField)) {
+      diagnostics.push({
+        code: "AIK-INPUT-001",
+        severity: "error",
+        toolName,
+        path: `/parameters/required/${reqField}`,
+        message: `Tool "${toolName}": ${receptorSide} requires mandatory argument "${reqField}", which ${emitterSide} does not declare.`,
+      });
+    }
+  }
+
+  // 2. Enum Contravariance (AIK-INPUT-002)
+  // Caller/emitter must not supply an enum value that is unaccepted by callee/receptor.
+  const emitterProps = (emitterParams.properties || {}) as Record<
+    string,
+    { enum?: unknown[]; type?: string }
+  >;
+  const receptorProps = (receptorParams.properties || {}) as Record<
+    string,
+    { enum?: unknown[]; type?: string }
+  >;
+
+  for (const [propName, receptorProp] of Object.entries(receptorProps)) {
+    if (Array.isArray(receptorProp.enum)) {
+      const emitterProp = emitterProps[propName];
+      if (emitterProp && Array.isArray(emitterProp.enum)) {
+        const unacceptedValues = emitterProp.enum.filter(
+          (val) => !receptorProp.enum?.includes(val),
+        );
+        if (unacceptedValues.length > 0) {
+          diagnostics.push({
+            code: "AIK-INPUT-002",
+            severity: "error",
+            toolName,
+            path: `/parameters/properties/${propName}/enum`,
+            message: `Tool "${toolName}": argument "${propName}" enum mismatch. ${emitterSide} allows unaccepted value(s): ${unacceptedValues.map((v) => JSON.stringify(v)).join(", ")}.`,
+          });
+        }
+      } else if (emitterProp && emitterProp.type === "string" && !emitterProp.enum) {
         diagnostics.push({
-          code: "AIK-INPUT-001",
+          code: "AIK-INPUT-002",
           severity: "error",
           toolName,
-          path: `/parameters/required/${reqField}`,
-          message: `Tool "${toolName}": provider requires mandatory argument "${reqField}", which consumer does not declare.`,
+          path: `/parameters/properties/${propName}/enum`,
+          message: `Tool "${toolName}": argument "${propName}" enum mismatch. ${receptorSide} restricts to enum [${receptorProp.enum.map((v) => JSON.stringify(v)).join(", ")}], but ${emitterSide} does not restrict allowed values.`,
         });
       }
     }

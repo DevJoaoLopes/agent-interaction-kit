@@ -58,4 +58,53 @@ describe("CLI runCheck", () => {
     });
     expect(exitCode).toBe(2);
   });
+
+  it("creates nested parent directories when writing report to output file", async () => {
+    fs.mkdirSync(tmpDir, { recursive: true });
+    const pPath = path.join(tmpDir, "provider.json");
+    const cPath = path.join(tmpDir, "consumer.json");
+    const nestedOut = path.join(tmpDir, "nested", "sub", "report.junit.xml");
+
+    fs.writeFileSync(
+      pPath,
+      JSON.stringify({
+        schemaVersion: "1.0.0",
+        producer: { name: "b", version: "1.0.0", buildId: "1" },
+        protocolProfile: "ag-ui@0.1",
+        contextProfile: "default",
+        tools: [
+          {
+            name: "ping",
+            executionSide: "backend",
+            parameters: { type: "object" },
+            returns: { format: "json" },
+          },
+        ],
+      }),
+    );
+
+    fs.writeFileSync(
+      cPath,
+      JSON.stringify({
+        schemaVersion: "1.0.0",
+        consumer: { name: "f", version: "1.0.0", buildId: "1" },
+        protocolProfile: "ag-ui@0.1",
+        contextProfile: "default",
+        requires: [{ toolName: "ping", executionSide: "backend" }],
+      }),
+    );
+
+    const exitCode = await runCheck({
+      provider: pPath,
+      consumer: cPath,
+      format: "junit",
+      output: nestedOut,
+    });
+
+    expect(exitCode).toBe(0);
+    expect(fs.existsSync(nestedOut)).toBe(true);
+    const content = fs.readFileSync(nestedOut, "utf-8");
+    expect(content).toContain('<testsuite name="aik-contract-checks"');
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
 });

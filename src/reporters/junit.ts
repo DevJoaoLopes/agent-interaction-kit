@@ -11,22 +11,41 @@ function escapeXml(unsafe: string): string {
 
 export function formatJunitReport(report: CompatibilityReport): string {
   const failuresCount = report.diagnostics.filter((d) => d.severity === "error").length;
-  const testsCount = report.checkedTools.length || 1;
 
   let testCasesXml = "";
+  let testsCount = 0;
+
   for (const tool of report.checkedTools) {
+    const escapedTool = escapeXml(tool);
     const toolDiags = report.diagnostics.filter((d) => d.toolName === tool);
+
     if (toolDiags.length === 0) {
-      testCasesXml += `    <testcase classname="AIK.${tool}" name="ContractCompatibility" time="0.001" />\n`;
+      testCasesXml += `    <testcase classname="AIK.${escapedTool}" name="ContractCompatibility" time="0.001" />\n`;
+      testsCount += 1;
     } else {
       for (const diag of toolDiags) {
-        testCasesXml += `    <testcase classname="AIK.${tool}" name="${diag.code}" time="0.001">\n`;
-        testCasesXml += `      <failure message="${escapeXml(diag.message)}" type="${diag.code}">\n`;
-        testCasesXml += `        ${escapeXml(diag.message)}\n`;
-        testCasesXml += "      </failure>\n";
+        testsCount += 1;
+        const escapedCode = escapeXml(diag.code);
+        const escapedMsg = escapeXml(diag.message);
+
+        testCasesXml += `    <testcase classname="AIK.${escapedTool}" name="${escapedCode}" time="0.001">\n`;
+        if (diag.severity === "error") {
+          testCasesXml += `      <failure message="${escapedMsg}" type="${escapedCode}">\n`;
+          testCasesXml += `        ${escapedMsg}\n`;
+          testCasesXml += "      </failure>\n";
+        } else {
+          testCasesXml += `      <warning message="${escapedMsg}" type="${escapedCode}">\n`;
+          testCasesXml += `        ${escapedMsg}\n`;
+          testCasesXml += "      </warning>\n";
+        }
         testCasesXml += "    </testcase>\n";
       }
     }
+  }
+
+  if (testsCount === 0) {
+    testCasesXml = '    <testcase classname="AIK" name="ContractCompatibility" time="0.001" />\n';
+    testsCount = 1;
   }
 
   return `<?xml version="1.0" encoding="UTF-8"?>

@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import { parseConsumerExpectations, parseProviderManifest } from "../../contracts/parser.js";
 import { evaluateCompatibility } from "../../core/compatibility.js";
 import {
@@ -56,6 +57,10 @@ export async function runCheck(options: CheckCommandOptions): Promise<number> {
   }
 
   if (options.output) {
+    const outputDir = path.dirname(options.output);
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
     fs.writeFileSync(options.output, formatted, "utf-8");
   } else {
     console.log(formatted);
