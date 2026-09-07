@@ -3,6 +3,33 @@ import type { ConsumerExpectations, ProviderManifest } from "../../src/contracts
 import { evaluateCompatibility } from "../../src/core/compatibility.js";
 
 describe("Compatibility Engine", () => {
+  const unsupportedKeywords = [
+    "not",
+    "patternProperties",
+    "oneOf",
+    "anyOf",
+    "allOf",
+    "$ref",
+  ] as const;
+
+  const createNestedUnsupportedSchema = (keyword: (typeof unsupportedKeywords)[number]) => ({
+    type: "object",
+    properties: {
+      filters: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            value: {
+              type: "string",
+              [keyword]: keyword === "$ref" ? "#/$defs/value" : {},
+            },
+          },
+        },
+      },
+    },
+  });
+
   const baseProvider: ProviderManifest = {
     schemaVersion: "1.0.0",
     producer: { name: "test-backend", version: "1.0.0", buildId: "b1" },
@@ -143,6 +170,58 @@ describe("Compatibility Engine", () => {
     expect(report.status).toBe("unknown");
     expect(report.diagnostics.some((d) => d.code === "AIK-SCHEMA-001")).toBe(true);
   });
+
+  it.each(unsupportedKeywords)(
+    "returns unknown for deeply nested %s in a parameters schema",
+    (keyword) => {
+      const providerWithComplexSchema: ProviderManifest = {
+        ...baseProvider,
+        tools: [
+          {
+            ...baseProvider.tools[0],
+            parameters: createNestedUnsupportedSchema(keyword),
+          },
+        ],
+      };
+
+      const report = evaluateCompatibility(providerWithComplexSchema, baseConsumer);
+      const diagnostic = report.diagnostics.find((item) => item.code === "AIK-SCHEMA-001");
+
+      expect(report.status).toBe("unknown");
+      expect(diagnostic?.path).toBe(
+        `/parameters/properties/filters/items/properties/value/${keyword}`,
+      );
+    },
+  );
+
+  it.each(unsupportedKeywords)(
+    "returns unknown for deeply nested %s in a returns schema",
+    (keyword) => {
+      const providerWithComplexSchema: ProviderManifest = {
+        ...baseProvider,
+        tools: [
+          {
+            ...baseProvider.tools[0],
+            returns: {
+              format: "json",
+              schema: {
+                type: "array",
+                items: createNestedUnsupportedSchema(keyword),
+              },
+            },
+          },
+        ],
+      };
+
+      const report = evaluateCompatibility(providerWithComplexSchema, baseConsumer);
+      const diagnostic = report.diagnostics.find((item) => item.code === "AIK-SCHEMA-001");
+
+      expect(report.status).toBe("unknown");
+      expect(diagnostic?.path).toBe(
+        `/returns/schema/items/properties/filters/items/properties/value/${keyword}`,
+      );
+    },
+  );
 
   it("fails with AIK-INPUT-002 when consumer allows enum values not accepted by provider", () => {
     const providerWithEnum: ProviderManifest = {

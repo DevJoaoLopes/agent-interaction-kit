@@ -65,6 +65,11 @@ describe("Contracts Parser", () => {
     const invalid = { ...validProvider, schemaVersion: undefined };
     const result = parseProviderManifest(invalid);
     expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors).toContain(
+        "Provider manifest: Validation error at (root): must have required property 'schemaVersion'",
+      );
+    }
   });
 
   it("parses valid consumer expectations", () => {
@@ -83,5 +88,31 @@ describe("Contracts Parser", () => {
     };
     const result = parseProviderManifest(invalid);
     expect(result.ok).toBe(false);
+  });
+
+  describe.each([
+    ["provider manifest", parseProviderManifest],
+    ["consumer expectations", parseConsumerExpectations],
+  ] as const)("%s edge cases", (_name, parse) => {
+    it.each(["", "{", "not json"])("rejects malformed or empty JSON: %j", (input) => {
+      expect(() => parse(input)).not.toThrow();
+      const result = parse(input);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.errors.length).toBeGreaterThan(0);
+      }
+    });
+
+    it.each(['"raw string"', "42", "true"])("rejects primitive JSON payload: %s", (input) => {
+      expect(() => parse(input)).not.toThrow();
+      const result = parse(input);
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.errors.length).toBeGreaterThan(0);
+        expect(result.errors[0]).toContain("Validation error at (root):");
+      }
+    });
   });
 });
