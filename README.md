@@ -24,23 +24,30 @@ When a tool schema changes—such as renaming a return field, dropping a require
 
 ## ⚡ Quickstart
 
-### 1. Install
+This repository uses pnpm workspaces: `packages/core` contains the library, CLI and fixtures; `apps/website` contains the Editorial landing and quickstart. Use Node 24 and pnpm 10.26.1 for the whole repository. The core itself still targets Node 20.
 
 ```bash
-# pnpm
-pnpm add -D @agent-interaction-kit/core
+pnpm install --frozen-lockfile
+pnpm build:core
+pnpm test
+pnpm dev:web
+```
 
-# npm
-npm install --save-dev @agent-interaction-kit/core
+See [website deployment](docs/deployment/website.md) for Vercel setup and [the core reference](packages/core/README.md) for package details.
 
-# yarn
-yarn add -D @agent-interaction-kit/core
+### 1. Build locally
+
+```bash
+git clone https://github.com/DevJoaoLopes/agent-interaction-kit.git
+cd agent-interaction-kit
+pnpm install --frozen-lockfile
+pnpm build:core
 ```
 
 ### 2. Run Compatibility Check
 
 ```bash
-npx aik check --provider ./backend/aik.provider.json --consumer ./frontend/aik.consumer.json
+pnpm --filter @agent-interaction-kit/core aik check --provider fixtures/valid/provider.json --consumer fixtures/valid/consumer.json --strict
 ```
 
 Output:
