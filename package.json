@@ -1,48 +1,20 @@
 {
-  "name": "@agent-interaction-kit/core",
-  "version": "0.1.0",
-  "description": "Tool and interaction contract testing for AG-UI applications",
+  "name": "agent-interaction-kit-workspace",
+  "private": true,
+  "packageManager": "pnpm@10.26.1",
   "type": "module",
-  "bin": {
-    "aik": "./dist/bin/aik.js"
-  },
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./contracts": {
-      "import": "./dist/contracts/index.js",
-      "types": "./dist/contracts/index.d.ts"
-    },
-    "./core": {
-      "import": "./dist/core/index.js",
-      "types": "./dist/core/index.d.ts"
-    },
-    "./reporters": {
-      "import": "./dist/reporters/index.js",
-      "types": "./dist/reporters/index.d.ts"
-    }
-  },
-  "files": ["dist", "bin"],
   "scripts": {
-    "build": "tsup",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "check": "biome check .",
-    "format": "biome format --write ."
-  },
-  "dependencies": {
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
-    "chalk": "^5.4.1",
-    "commander": "^13.1.0"
+    "dev:web": "pnpm build:core && pnpm --filter @agent-interaction-kit/website dev",
+    "build": "pnpm build:core && pnpm build:web",
+    "build:core": "pnpm --filter @agent-interaction-kit/core build",
+    "build:web": "pnpm --filter @agent-interaction-kit/website build",
+    "test": "pnpm --filter @agent-interaction-kit/core test",
+    "test:web": "pnpm --filter @agent-interaction-kit/website test",
+    "typecheck": "pnpm --filter @agent-interaction-kit/core typecheck && pnpm --filter @agent-interaction-kit/website typecheck",
+    "check": "biome check . && pnpm --filter @agent-interaction-kit/website format:check",
+    "format": "biome check --write . && pnpm --filter @agent-interaction-kit/website format"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "@types/node": "^22.13.1",
-    "tsup": "^8.4.0",
-    "typescript": "^5.7.3",
-    "vitest": "^3.0.5"
+    "@biomejs/biome": "1.9.4"
   }
 }

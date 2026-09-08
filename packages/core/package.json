@@ -1,0 +1,50 @@
+{
+  "name": "@agent-interaction-kit/core",
+  "version": "0.1.0",
+  "description": "Tool and interaction contract testing for AG-UI applications",
+  "type": "module",
+  "bin": {
+    "aik": "./dist/bin/aik.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./contracts": {
+      "import": "./dist/contracts/index.js",
+      "types": "./dist/contracts/index.d.ts"
+    },
+    "./core": {
+      "import": "./dist/core/index.js",
+      "types": "./dist/core/index.d.ts"
+    },
+    "./reporters": {
+      "import": "./dist/reporters/index.js",
+      "types": "./dist/reporters/index.d.ts"
+    }
+  },
+  "files": ["dist", "bin"],
+  "scripts": {
+    "aik": "node dist/bin/aik.js",
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "check": "biome check .",
+    "format": "biome format --write ."
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^22.13.1",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

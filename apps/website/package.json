@@ -1,0 +1,41 @@
+{
+  "name": "@agent-interaction-kit/website",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.18.0" },
+  "scripts": {
+    "dev": "astro dev --host 127.0.0.1",
+    "prebuild": "pnpm --filter @agent-interaction-kit/core build && node scripts/validate-examples.mjs",
+    "build": "astro build",
+    "preview": "astro preview --host 127.0.0.1",
+    "typecheck": "astro check",
+    "test": "playwright test",
+    "format": "prettier --write \"src/**/*.astro\" \"src/**/*.css\"",
+    "format:check": "prettier --check \"src/**/*.astro\" \"src/**/*.css\""
+  },
+  "dependencies": {
+    "@astrojs/react": "6.0.5",
+    "@fontsource/inter": "^5.2.0",
+    "@fontsource/source-serif-4": "^5.2.0",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@tailwindcss/vite": "4.3.3",
+    "astro": "7.3.1",
+    "clsx": "^2.1.1",
+    "motion": "13.2.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tailwind-merge": "^3.0.0",
+    "tailwindcss": "4.3.3"
+  },
+  "devDependencies": {
+    "@agent-interaction-kit/core": "workspace:*",
+    "@astrojs/check": "0.9.10",
+    "@axe-core/playwright": "^4.10.0",
+    "@playwright/test": "^1.55.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "prettier": "^3.6.0",
+    "prettier-plugin-astro": "^0.14.0",
+    "typescript": "^5.9.3"
+  }
+}
