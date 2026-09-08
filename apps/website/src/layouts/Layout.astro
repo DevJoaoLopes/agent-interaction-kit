@@ -1,0 +1,62 @@
+---
+import "@fontsource/inter/latin-400.css";
+import "@fontsource/inter/latin-500.css";
+import "@fontsource/inter/latin-600.css";
+import "@fontsource/source-serif-4/latin-400-italic.css";
+import "../styles/global.css";
+interface Props {
+  title?: string;
+  description?: string;
+}
+const {
+  title = "AIK — Keep your agent and UI in sync",
+  description = "Catch breaking tool contracts between AI agents and frontend apps in CI, before deployment. Open-source contract testing with Agent Interaction Kit.",
+} = Astro.props;
+const production = import.meta.env.VERCEL_ENV === "production" && !!Astro.site;
+const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site) : undefined;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title><meta name="description" content={description} />
+    <meta name="theme-color" content="#f8f9f5" />
+    {!production && <meta name="robots" content="noindex, nofollow" />}
+    {canonical && <link rel="canonical" href={canonical} />}
+    <meta property="og:title" content={title} /><meta
+      property="og:description"
+      content={description}
+    />
+    <meta property="og:type" content="website" />
+    {canonical && <meta property="og:url" content={canonical} />}
+    <meta name="twitter:card" content="summary_large_image" />
+    {Astro.site && <meta property="og:image" content={new URL("/og.png", Astro.site)} />}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header shell">
+      <a class="wordmark" href="/" aria-label="Agent Interaction Kit home"
+        ><span class="symbol">[↔]</span> aik<span class="wordmark-detail"
+          >agent interaction kit</span
+        ></a
+      >
+      <nav aria-label="Main navigation">
+        <a href="/docs/">Docs</a><a href="https://github.com/DevJoaoLopes/agent-interaction-kit"
+          >GitHub <span aria-hidden="true">↗</span></a
+        >
+      </nav>
+    </header>
+    <main id="main"><slot /></main>
+    <footer class="site-footer shell">
+      <a class="wordmark" href="/">[↔] aik</a><span>Small contracts. Better conversations.</span
+      ><nav aria-label="Footer">
+        <a href="/docs/">Docs</a><a
+          href="https://github.com/DevJoaoLopes/agent-interaction-kit/blob/main/LICENSE"
+          >MIT license ↗</a
+        >
+      </nav>
+    </footer>
+  </body>
+</html>
