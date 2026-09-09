@@ -94,6 +94,72 @@ describe("Compatibility Engine", () => {
     expect(report.diagnostics).toHaveLength(0);
   });
 
+  describe.each(["provider", "consumer"] as const)("%s schema safety", (side) => {
+    describe.each(["parameters", "returns"] as const)("%s", (location) => {
+      const evaluateSchema = (schema: Record<string, unknown>) => {
+        const provider = structuredClone(baseProvider);
+        const consumer = structuredClone(baseConsumer);
+        // Keep both schemas compatible so only the safety check can reject them.
+        provider.tools[0].parameters = { type: "object" };
+        consumer.requires[0].expectedParameters = { type: "object" };
+        provider.tools[0].returns = { format: "json", schema: { type: "object" } };
+        consumer.requires[0].expectedReturns = { format: "json", schema: { type: "object" } };
+        if (side === "provider") {
+          if (location === "parameters") provider.tools[0].parameters = schema;
+          else provider.tools[0].returns = { format: "json", schema };
+        } else if (location === "parameters") consumer.requires[0].expectedParameters = schema;
+        else consumer.requires[0].expectedReturns = { format: "json", schema };
+        return evaluateCompatibility(provider, consumer);
+      };
+
+      it.each([
+        {
+          name: "tuple items",
+          schema: {
+            type: "object",
+            properties: { values: { type: "array", items: [{ type: "string" }, { not: {} }] } },
+          },
+          path: "/properties/values/items/1/not",
+        },
+        {
+          name: "prefixItems",
+          schema: {
+            type: "object",
+            properties: {
+              values: { type: "array", prefixItems: [{ type: "string" }, { not: {} }] },
+            },
+          },
+          path: "/properties/values/prefixItems/1/not",
+        },
+        {
+          name: "additionalProperties",
+          schema: { type: "object", additionalProperties: { not: {} } },
+          path: "/additionalProperties/not",
+        },
+        {
+          name: "escaped property names",
+          schema: { type: "object", properties: { "a/b~c": { not: {} } } },
+          path: "/properties/a~1b~0c/not",
+        },
+      ])("reports unknown with an exact path for $name", ({ schema, path }) => {
+        const report = evaluateSchema(schema);
+        expect(report.status).toBe("unknown");
+        expect(report.diagnostics).toContainEqual(
+          expect.objectContaining({
+            code: "AIK-SCHEMA-001",
+            path: `${location === "parameters" ? "/parameters" : "/returns/schema"}${path}`,
+          }),
+        );
+      });
+
+      it.each(["definitions", "$defs"])("ignores unreferenced %s", (keyword) => {
+        const report = evaluateSchema({ type: "object", [keyword]: { unused: { not: {} } } });
+        expect(report.status).toBe("pass");
+        expect(report.diagnostics).toHaveLength(0);
+      });
+    });
+  });
+
   it("fails with AIK-TOOL-001 when required tool is missing", () => {
     const consumerWithExtraTool: ConsumerExpectations = {
       ...baseConsumer,

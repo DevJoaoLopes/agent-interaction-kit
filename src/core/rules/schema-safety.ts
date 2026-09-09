@@ -21,15 +21,35 @@ export function findUnsupportedConstruct(schema: unknown, currentPath = ""): str
 
   if (obj.properties && typeof obj.properties === "object") {
     for (const [propName, propSchema] of Object.entries(obj.properties)) {
-      const found = findUnsupportedConstruct(propSchema, `${currentPath}/properties/${propName}`);
+      const escapedName = propName.replace(/~/g, "~0").replace(/\//g, "~1");
+      const found = findUnsupportedConstruct(
+        propSchema,
+        `${currentPath}/properties/${escapedName}`,
+      );
       if (found) {
         return found;
       }
     }
   }
 
-  if (obj.items && typeof obj.items === "object") {
-    const found = findUnsupportedConstruct(obj.items, `${currentPath}/items`);
+  for (const keyword of ["items", "prefixItems"] as const) {
+    const schemas = obj[keyword];
+    if (Array.isArray(schemas)) {
+      for (const [index, item] of schemas.entries()) {
+        const found = findUnsupportedConstruct(item, `${currentPath}/${keyword}/${index}`);
+        if (found) return found;
+      }
+    } else if (keyword === "items") {
+      const found = findUnsupportedConstruct(schemas, `${currentPath}/items`);
+      if (found) return found;
+    }
+  }
+
+  if (obj.additionalProperties && typeof obj.additionalProperties === "object") {
+    const found = findUnsupportedConstruct(
+      obj.additionalProperties,
+      `${currentPath}/additionalProperties`,
+    );
     if (found) {
       return found;
     }
