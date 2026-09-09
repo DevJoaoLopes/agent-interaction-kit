@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to verify against package.json (e.g. v0.1.0)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate release tag and version
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          EXPECTED_TAG="v${PACKAGE_VERSION}"
+          
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.tag }}" ]]; then
+            RELEASE_TAG="${{ inputs.tag }}"
+          else
+            if [[ "${{ github.ref_type }}" != "tag" ]]; then
+              echo "::error::Release workflow must be triggered on a Git tag or provide a tag input."
+              exit 1
+            fi
+            RELEASE_TAG="${{ github.ref_name }}"
+          fi
+
+          if [[ "$RELEASE_TAG" != "$EXPECTED_TAG" ]]; then
+            echo "::error::Release tag '$RELEASE_TAG' does not match package.json version '$PACKAGE_VERSION' (expected '$EXPECTED_TAG')."
+            exit 1
+          fi
+
+          if [[ "$PACKAGE_VERSION" =~ - ]]; then
+            NPM_TAG="next"
+          else
+            NPM_TAG="latest"
+          fi
+          echo "NPM_TAG=$NPM_TAG" >> "$GITHUB_ENV"
+          echo "Validated release: version=$PACKAGE_VERSION, tag=$RELEASE_TAG, dist-tag=$NPM_TAG"
+
+      - name: Lint
+        run: pnpm check
+
+      - name: Knip
+        run: pnpm knip
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Inspect package contents
+        run: pnpm pack --dry-run
+
+      - name: Publish package
+        run: pnpm publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

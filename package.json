@@ -2,6 +2,29 @@
   "name": "@agent-interaction-kit/core",
   "version": "0.1.0",
   "description": "Tool and interaction contract testing for AG-UI applications",
+  "license": "MIT",
+  "author": "João Victor Lopes (https://github.com/DevJoaoLopes)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DevJoaoLopes/agent-interaction-kit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DevJoaoLopes/agent-interaction-kit/issues"
+  },
+  "homepage": "https://github.com/DevJoaoLopes/agent-interaction-kit#readme",
+  "keywords": [
+    "agent",
+    "contract-testing",
+    "consumer-driven-contracts",
+    "ag-ui",
+    "copilotkit",
+    "mastra",
+    "testing",
+    "ai-tools"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "bin": {
     "aik": "./dist/bin/aik.js"
@@ -31,11 +54,12 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "check": "biome check .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "knip": "knip",
+    "knip:production": "knip --production"
   },
   "dependencies": {
     "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
     "chalk": "^5.4.1",
     "commander": "^13.1.0"
   },
@@ -44,6 +68,7 @@
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@types/node": "^22.13.1",
+    "knip": "^6.34.0",
     "tsup": "^8.4.0",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5"
