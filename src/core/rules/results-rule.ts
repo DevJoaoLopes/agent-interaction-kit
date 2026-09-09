@@ -1,5 +1,6 @@
 import type { ToolDescriptor, ToolReturnDescriptor } from "../../contracts/types.js";
 import type { Diagnostic } from "../diagnostics.js";
+import { findUnsupportedConstruct } from "./schema-safety.js";
 
 export function checkResults(
   consumerExpectedReturns: ToolReturnDescriptor | undefined,
@@ -8,11 +9,26 @@ export function checkResults(
   const diagnostics: Diagnostic[] = [];
   const toolName = providerTool.name;
 
+  const providerReturns = providerTool.returns;
+  const providerUnsupportedPath = findUnsupportedConstruct(providerReturns?.schema);
+  const consumerUnsupportedPath = findUnsupportedConstruct(consumerExpectedReturns?.schema);
+  const unsupportedPath = providerUnsupportedPath ?? consumerUnsupportedPath;
+
+  if (unsupportedPath) {
+    diagnostics.push({
+      code: "AIK-SCHEMA-001",
+      severity: "unknown",
+      toolName,
+      path: `/returns/schema${unsupportedPath}`,
+      message: `Tool "${toolName}" returns schema contains unsupported construct at "${unsupportedPath}".`,
+    });
+    return diagnostics;
+  }
+
   if (!consumerExpectedReturns || !consumerExpectedReturns.schema) {
     return diagnostics;
   }
 
-  const providerReturns = providerTool.returns;
   if (!providerReturns || !providerReturns.schema) {
     diagnostics.push({
       code: "AIK-RESULT-001",
@@ -25,17 +41,6 @@ export function checkResults(
 
   const cSchema = consumerExpectedReturns.schema as Record<string, unknown>;
   const pSchema = providerReturns.schema as Record<string, unknown>;
-
-  // Detect unsupported schema constructs
-  if ("not" in cSchema || "not" in pSchema) {
-    diagnostics.push({
-      code: "AIK-SCHEMA-001",
-      severity: "unknown",
-      toolName,
-      message: `Tool "${toolName}" returns schema contains unsupported "not" construct.`,
-    });
-    return diagnostics;
-  }
 
   // Root type check (e.g. array vs object)
   if (cSchema.type && pSchema.type && cSchema.type !== pSchema.type) {

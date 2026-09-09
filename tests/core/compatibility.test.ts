@@ -3,6 +3,33 @@ import type { ConsumerExpectations, ProviderManifest } from "../../src/contracts
 import { evaluateCompatibility } from "../../src/core/compatibility.js";
 
 describe("Compatibility Engine", () => {
+  const unsupportedKeywords = [
+    "not",
+    "patternProperties",
+    "oneOf",
+    "anyOf",
+    "allOf",
+    "$ref",
+  ] as const;
+
+  const createNestedUnsupportedSchema = (keyword: (typeof unsupportedKeywords)[number]) => ({
+    type: "object",
+    properties: {
+      filters: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            value: {
+              type: "string",
+              [keyword]: keyword === "$ref" ? "#/$defs/value" : {},
+            },
+          },
+        },
+      },
+    },
+  });
+
   const baseProvider: ProviderManifest = {
     schemaVersion: "1.0.0",
     producer: { name: "test-backend", version: "1.0.0", buildId: "b1" },
@@ -65,6 +92,72 @@ describe("Compatibility Engine", () => {
     const report = evaluateCompatibility(baseProvider, baseConsumer);
     expect(report.status).toBe("pass");
     expect(report.diagnostics).toHaveLength(0);
+  });
+
+  describe.each(["provider", "consumer"] as const)("%s schema safety", (side) => {
+    describe.each(["parameters", "returns"] as const)("%s", (location) => {
+      const evaluateSchema = (schema: Record<string, unknown>) => {
+        const provider = structuredClone(baseProvider);
+        const consumer = structuredClone(baseConsumer);
+        // Keep both schemas compatible so only the safety check can reject them.
+        provider.tools[0].parameters = { type: "object" };
+        consumer.requires[0].expectedParameters = { type: "object" };
+        provider.tools[0].returns = { format: "json", schema: { type: "object" } };
+        consumer.requires[0].expectedReturns = { format: "json", schema: { type: "object" } };
+        if (side === "provider") {
+          if (location === "parameters") provider.tools[0].parameters = schema;
+          else provider.tools[0].returns = { format: "json", schema };
+        } else if (location === "parameters") consumer.requires[0].expectedParameters = schema;
+        else consumer.requires[0].expectedReturns = { format: "json", schema };
+        return evaluateCompatibility(provider, consumer);
+      };
+
+      it.each([
+        {
+          name: "tuple items",
+          schema: {
+            type: "object",
+            properties: { values: { type: "array", items: [{ type: "string" }, { not: {} }] } },
+          },
+          path: "/properties/values/items/1/not",
+        },
+        {
+          name: "prefixItems",
+          schema: {
+            type: "object",
+            properties: {
+              values: { type: "array", prefixItems: [{ type: "string" }, { not: {} }] },
+            },
+          },
+          path: "/properties/values/prefixItems/1/not",
+        },
+        {
+          name: "additionalProperties",
+          schema: { type: "object", additionalProperties: { not: {} } },
+          path: "/additionalProperties/not",
+        },
+        {
+          name: "escaped property names",
+          schema: { type: "object", properties: { "a/b~c": { not: {} } } },
+          path: "/properties/a~1b~0c/not",
+        },
+      ])("reports unknown with an exact path for $name", ({ schema, path }) => {
+        const report = evaluateSchema(schema);
+        expect(report.status).toBe("unknown");
+        expect(report.diagnostics).toContainEqual(
+          expect.objectContaining({
+            code: "AIK-SCHEMA-001",
+            path: `${location === "parameters" ? "/parameters" : "/returns/schema"}${path}`,
+          }),
+        );
+      });
+
+      it.each(["definitions", "$defs"])("ignores unreferenced %s", (keyword) => {
+        const report = evaluateSchema({ type: "object", [keyword]: { unused: { not: {} } } });
+        expect(report.status).toBe("pass");
+        expect(report.diagnostics).toHaveLength(0);
+      });
+    });
   });
 
   it("fails with AIK-TOOL-001 when required tool is missing", () => {
@@ -143,6 +236,58 @@ describe("Compatibility Engine", () => {
     expect(report.status).toBe("unknown");
     expect(report.diagnostics.some((d) => d.code === "AIK-SCHEMA-001")).toBe(true);
   });
+
+  it.each(unsupportedKeywords)(
+    "returns unknown for deeply nested %s in a parameters schema",
+    (keyword) => {
+      const providerWithComplexSchema: ProviderManifest = {
+        ...baseProvider,
+        tools: [
+          {
+            ...baseProvider.tools[0],
+            parameters: createNestedUnsupportedSchema(keyword),
+          },
+        ],
+      };
+
+      const report = evaluateCompatibility(providerWithComplexSchema, baseConsumer);
+      const diagnostic = report.diagnostics.find((item) => item.code === "AIK-SCHEMA-001");
+
+      expect(report.status).toBe("unknown");
+      expect(diagnostic?.path).toBe(
+        `/parameters/properties/filters/items/properties/value/${keyword}`,
+      );
+    },
+  );
+
+  it.each(unsupportedKeywords)(
+    "returns unknown for deeply nested %s in a returns schema",
+    (keyword) => {
+      const providerWithComplexSchema: ProviderManifest = {
+        ...baseProvider,
+        tools: [
+          {
+            ...baseProvider.tools[0],
+            returns: {
+              format: "json",
+              schema: {
+                type: "array",
+                items: createNestedUnsupportedSchema(keyword),
+              },
+            },
+          },
+        ],
+      };
+
+      const report = evaluateCompatibility(providerWithComplexSchema, baseConsumer);
+      const diagnostic = report.diagnostics.find((item) => item.code === "AIK-SCHEMA-001");
+
+      expect(report.status).toBe("unknown");
+      expect(diagnostic?.path).toBe(
+        `/returns/schema/items/properties/filters/items/properties/value/${keyword}`,
+      );
+    },
+  );
 
   it("fails with AIK-INPUT-002 when consumer allows enum values not accepted by provider", () => {
     const providerWithEnum: ProviderManifest = {

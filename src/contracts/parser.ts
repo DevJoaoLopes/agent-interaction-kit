@@ -9,6 +9,11 @@ const ajv = new AjvConstructor({ allErrors: true });
 const validateProvider = ajv.compile(providerManifestSchema);
 const validateConsumer = ajv.compile(consumerExpectationsSchema);
 
+function formatValidationError(subject: string, error: ErrorObject): string {
+  const location = error.instancePath || "(root)";
+  return `${subject}: Validation error at ${location}: ${error.message}`;
+}
+
 export function parseProviderManifest(input: string | object): Result<ProviderManifest> {
   let parsed: unknown;
   try {
@@ -21,8 +26,8 @@ export function parseProviderManifest(input: string | object): Result<ProviderMa
   if (!valid) {
     return {
       ok: false,
-      errors: (validateProvider.errors || []).map(
-        (e: ErrorObject) => `Provider manifest validation error: ${e.instancePath} ${e.message}`,
+      errors: (validateProvider.errors || []).map((error: ErrorObject) =>
+        formatValidationError("Provider manifest", error),
       ),
     };
   }
@@ -45,9 +50,8 @@ export function parseConsumerExpectations(input: string | object): Result<Consum
   if (!valid) {
     return {
       ok: false,
-      errors: (validateConsumer.errors || []).map(
-        (e: ErrorObject) =>
-          `Consumer expectations validation error: ${e.instancePath} ${e.message}`,
+      errors: (validateConsumer.errors || []).map((error: ErrorObject) =>
+        formatValidationError("Consumer expectations", error),
       ),
     };
   }
