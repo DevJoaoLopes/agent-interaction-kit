@@ -1,5 +1,6 @@
 import type { ToolDescriptor, ToolParameterSchema } from "../../contracts/types.js";
 import type { Diagnostic } from "../diagnostics.js";
+import { findUnsupportedConstruct } from "./schema-safety.js";
 
 export function checkArguments(
   consumerExpectedParams: ToolParameterSchema | undefined,
@@ -9,18 +10,17 @@ export function checkArguments(
   const toolName = providerTool.name;
   const isServerExecution = providerTool.executionSide === "backend";
 
-  // Check for unsupported schema constructs
-  const checkUnsupported = (schema?: Record<string, unknown>): boolean => {
-    if (!schema) return false;
-    return "not" in schema || "patternProperties" in schema;
-  };
+  const providerUnsupportedPath = findUnsupportedConstruct(providerTool.parameters);
+  const consumerUnsupportedPath = findUnsupportedConstruct(consumerExpectedParams);
+  const unsupportedPath = providerUnsupportedPath ?? consumerUnsupportedPath;
 
-  if (checkUnsupported(providerTool.parameters) || checkUnsupported(consumerExpectedParams)) {
+  if (unsupportedPath) {
     diagnostics.push({
       code: "AIK-SCHEMA-001",
       severity: "unknown",
       toolName,
-      message: `Tool "${toolName}" parameters schema contains complex construct (not, patternProperties) outside supported subset.`,
+      path: `/parameters${unsupportedPath}`,
+      message: `Tool "${toolName}" parameters schema contains unsupported construct at "${unsupportedPath}".`,
     });
     return diagnostics;
   }
