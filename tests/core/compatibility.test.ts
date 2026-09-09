@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { ConsumerExpectations, ProviderManifest } from "../../src/contracts/types.js";
+import type {
+  ConsumerExpectations,
+  ProviderManifest,
+  ToolParameterSchema,
+} from "../../src/contracts/types.js";
 import { evaluateCompatibility } from "../../src/core/compatibility.js";
 
 describe("Compatibility Engine", () => {
@@ -12,7 +16,9 @@ describe("Compatibility Engine", () => {
     "$ref",
   ] as const;
 
-  const createNestedUnsupportedSchema = (keyword: (typeof unsupportedKeywords)[number]) => ({
+  const createNestedUnsupportedSchema = (
+    keyword: (typeof unsupportedKeywords)[number],
+  ): ToolParameterSchema => ({
     type: "object",
     properties: {
       filters: {
@@ -105,9 +111,11 @@ describe("Compatibility Engine", () => {
         provider.tools[0].returns = { format: "json", schema: { type: "object" } };
         consumer.requires[0].expectedReturns = { format: "json", schema: { type: "object" } };
         if (side === "provider") {
-          if (location === "parameters") provider.tools[0].parameters = schema;
+          if (location === "parameters")
+            provider.tools[0].parameters = schema as ToolParameterSchema;
           else provider.tools[0].returns = { format: "json", schema };
-        } else if (location === "parameters") consumer.requires[0].expectedParameters = schema;
+        } else if (location === "parameters")
+          consumer.requires[0].expectedParameters = schema as ToolParameterSchema;
         else consumer.requires[0].expectedReturns = { format: "json", schema };
         return evaluateCompatibility(provider, consumer);
       };

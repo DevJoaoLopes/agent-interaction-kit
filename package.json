@@ -52,6 +52,7 @@
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
     "check": "biome check .",
     "format": "biome format --write .",
     "knip": "knip",
@@ -64,6 +65,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
     "@types/node": "^22.13.1",
     "knip": "^6.34.0",
     "tsup": "^8.4.0",
