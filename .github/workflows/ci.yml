@@ -22,22 +22,8 @@ jobs:
       - run: pnpm check
       - run: pnpm knip
 
-  typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: "pnpm"
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-
-  test:
-    name: Test (Node ${{ matrix.node-version }}, ${{ matrix.os }})
+  core-matrix:
+    name: Core (Node ${{ matrix.node-version }}, ${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
@@ -54,9 +40,11 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @agent-interaction-kit/core typecheck
       - run: pnpm test
+      - run: pnpm build:core
 
-  build:
+  website:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -68,4 +56,16 @@ jobs:
           node-version: 22
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+      - run: pnpm build:core
+      - run: pnpm build:web
+      - run: pnpm --filter @agent-interaction-kit/website typecheck
+      - run: pnpm --filter @agent-interaction-kit/website exec playwright install --with-deps chromium
+      - run: pnpm test:web
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: website-browser-report
+          path: |
+            apps/website/playwright-report/
+            apps/website/test-results/
+          retention-days: 7

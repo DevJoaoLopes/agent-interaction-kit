@@ -2,3 +2,11 @@ node_modules/
 dist/
 .superpowers/
 .playwright-mcp/
+.astro/
+.vercel/
+test-results/
+playwright-report/
+.env
+.env.*
+!.env.example
+*.tgz

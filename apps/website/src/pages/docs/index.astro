@@ -1,0 +1,87 @@
+---
+import Quickstart from "../../components/landing/Quickstart";
+import { consumer, provider } from "../../data/examples";
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout
+  title="Quickstart — Agent Interaction Kit"
+  description="Build AIK, describe your provider and consumer contracts, and catch incompatible tool changes in CI."
+>
+  <article class="docs shell">
+    <a class="text-link" href="/">← Back to AIK</a><span class="eyebrow">QUICKSTART</span>
+    <h1>Make the agreement<br /><em>explicit.</em></h1>
+    <p class="docs-lead">
+      Two JSON manifests describe the tool contract between your agent and your interface. AIK
+      checks whether they agree.
+    </p>
+    <h2>01 / Build AIK</h2><p>
+      Use Node.js 24 and pnpm 10.26.1 for this repository. The npm release is in preparation; build
+      the CLI locally today.
+    </p>
+    <Quickstart client:load />
+    <h2>02 / Describe both sides</h2><p>
+      Save these files in <code>packages/core/</code>. They use the same fixtures that are checked
+      against the real engine during the website build.
+    </p>
+    <div class="manifest-downloads">
+      <a class="button secondary" href="/examples/provider.json" download="aik.provider.json"
+        >Download provider ↓</a
+      ><a class="button secondary" href="/examples/consumer.json" download="aik.consumer.json"
+        >Download consumer ↓</a
+      >
+    </div>
+    <details>
+      <summary>aik.provider.json · what the agent provides</summary><pre
+        class="code-block"><code>{JSON.stringify(provider, null, 2)}</code></pre>
+    </details>
+    <details>
+      <summary>aik.consumer.json · what the UI expects</summary><pre
+        class="code-block"><code>{JSON.stringify(consumer, null, 2)}</code></pre>
+    </details>
+    <h2>03 / Check the contract</h2><p>From the repository root, run:</p><pre
+      class="code-block"><code>pnpm --filter @agent-interaction-kit/core aik check \
+  --provider aik.provider.json \
+  --consumer aik.consumer.json --strict</code></pre>
+    <p>
+      Rename <code>total</code> to <code>amount</code> in the provider's return schema, including its
+      required list. Run again: AIK reports <code>AIK-RESULT-002</code> and exits with code 1. Restore
+      the field to pass.
+    </p>
+    <h2>04 / Use it in CI</h2><p>
+      After checkout, pnpm setup and dependency installation, build and check your manifests:
+    </p><pre
+      class="code-block"><code>- run: pnpm build:core
+- run: |
+    pnpm --filter @agent-interaction-kit/core aik check \
+      --provider aik.provider.json \
+      --consumer aik.consumer.json --strict</code></pre>
+    <div class="table-scroll">
+      <table>
+        <caption>Result and exit code with --strict</caption><thead
+          ><tr><th>Result</th><th>Exit</th><th>Meaning</th></tr></thead
+        ><tbody
+          ><tr><td>Pass</td><td>0</td><td>Compatible within the supported schema checks.</td></tr
+          ><tr><td>Fail</td><td>1</td><td>A breaking contract change was detected.</td></tr><tr
+            ><td>Unknown / error</td><td>2</td><td
+              >Unsupported schema, invalid input or missing files.</td
+            ></tr
+          ></tbody
+        >
+      </table>
+    </div>
+    <p>
+      <strong>Unknown is not a pass.</strong> Without <code>--strict</code>, an unknown report can
+      exit 0. Keep strict mode enabled in CI. For example, a return schema with <code>not</code> is inconclusive
+      and emits <code>AIK-SCHEMA-001</code>.
+    </p>
+    <p>
+      AIK compares the manifests you supply. It does not validate live traffic, automatically repair
+      code, or prove that the implementation matches its manifest. Keep contracts reviewed and
+      updated alongside code.
+    </p>
+    <a class="text-link" href="https://github.com/DevJoaoLopes/agent-interaction-kit"
+      >Explore the source and full CLI reference ↗</a
+    >
+  </article>
+</Layout>

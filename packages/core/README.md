@@ -3,9 +3,7 @@
 > **Contract testing for tool calls between backend AI agents and frontend web apps.**  
 > Catch agent-frontend schema drifts in CI before they break chat conversations in production.
 
-[![CI Matrix: Node 20, 22, 24](https://github.com/DevJoaoLopes/agent-interaction-kit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DevJoaoLopes/agent-interaction-kit/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/%40agent-interaction-kit%2Fcore?logo=npm)](https://www.npmjs.com/package/@agent-interaction-kit/core)
-[![npm downloads](https://img.shields.io/npm/dm/%40agent-interaction-kit%2Fcore?logo=npm)](https://www.npmjs.com/package/@agent-interaction-kit/core)
+[![CI](https://github.com/DevJoaoLopes/agent-interaction-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/DevJoaoLopes/agent-interaction-kit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
@@ -26,40 +24,18 @@ When a tool schema changes—such as renaming a return field, dropping a require
 
 ## ⚡ Quickstart
 
-This repository uses pnpm workspaces: `packages/core` contains the library, CLI and fixtures; `apps/website` contains the Editorial landing and quickstart. Use Node 24 and pnpm 10.26.1 for the whole repository. The core itself still targets Node 20.
+### 1. Build locally (npm release in preparation)
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm build:core
-pnpm test
-pnpm dev:web
-```
-
-See [website deployment](docs/deployment/website.md) for Vercel setup and [the core reference](packages/core/README.md) for package details.
-
-### 1. Build locally
-
-```bash
-git clone https://github.com/DevJoaoLopes/agent-interaction-kit.git
-cd agent-interaction-kit
+# From the repository root
 pnpm install --frozen-lockfile
 pnpm build:core
 ```
 
 ### 2. Run Compatibility Check
 
-Run the locally installed `aik` binary:
-
 ```bash
 pnpm --filter @agent-interaction-kit/core aik check --provider fixtures/valid/provider.json --consumer fixtures/valid/consumer.json --strict
-```
-
-For an ad-hoc check without adding AIK to your project first, invoke the package directly:
-
-```bash
-npx @agent-interaction-kit/core check \
-  --provider ./backend/aik.provider.json \
-  --consumer ./frontend/aik.consumer.json
 ```
 
 Output:
@@ -98,7 +74,7 @@ AIK decouples teams through two lightweight, version-controlled JSON manifests:
    - **Arguments Contravariance**: Ensures the caller satisfies all mandatory arguments and enum restrictions. Supports reverse polarity for frontend-side tools (`executionSide: "frontend"`).
    - **Return Covariance**: Ensures the producer provides all fields expected by the UI.
 
-> 💡 **Tip:** You don't have to write these manifests by hand! Use our ready-to-use Agent Skill at [`skills/generate-contracts/SKILL.md`](skills/generate-contracts/SKILL.md) to let your AI coding assistant (Cursor, Antigravity, Copilot) extract contracts directly from your C# and TypeScript code.
+> 💡 **Tip:** Use the [generate-contracts skill](https://github.com/DevJoaoLopes/agent-interaction-kit/blob/main/skills/generate-contracts/SKILL.md) to help extract contracts from your code.
 
 ---
 

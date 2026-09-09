@@ -39,7 +39,7 @@ jobs:
 
       - name: Validate release tag and version
         run: |
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_VERSION=$(node -p "require('./packages/core/package.json').version")
           EXPECTED_TAG="v${PACKAGE_VERSION}"
           
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.tag }}" ]]; then
@@ -74,13 +74,13 @@ jobs:
       - name: Test
         run: pnpm test
 
-      - name: Build
-        run: pnpm build
+      - name: Build core
+        run: pnpm build:core
 
       - name: Inspect package contents
-        run: pnpm pack --dry-run
+        run: pnpm --filter @agent-interaction-kit/core pack --dry-run
 
       - name: Publish package
-        run: pnpm publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
+        run: pnpm --filter @agent-interaction-kit/core publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

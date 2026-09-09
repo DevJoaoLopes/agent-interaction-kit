@@ -1,12 +1,20 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": [
-    "src/index.ts!",
-    "src/contracts/index.ts!",
-    "src/core/index.ts!",
-    "src/reporters/index.ts!",
-    "bin/aik.ts!"
-  ],
-  "project": ["src/**/*.ts!", "tests/**/*.ts"],
-  "ignoreDependencies": []
+  "workspaces": {
+    "packages/core": {
+      "entry": [
+        "src/index.ts!",
+        "src/contracts/index.ts!",
+        "src/core/index.ts!",
+        "src/reporters/index.ts!",
+        "bin/aik.ts!"
+      ],
+      "project": ["src/**/*.ts!", "tests/**/*.ts"]
+    },
+    "apps/website": {
+      "entry": ["src/pages/**/*.{astro,ts,tsx}"],
+      "project": ["src/**/*.{astro,ts,tsx}"],
+      "ignoreDependencies": ["tailwindcss"]
+    }
+  }
 }
