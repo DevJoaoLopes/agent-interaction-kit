@@ -12,9 +12,14 @@
     "test:web": "pnpm --filter @agent-interaction-kit/website test",
     "typecheck": "pnpm --filter @agent-interaction-kit/core typecheck && pnpm --filter @agent-interaction-kit/website typecheck",
     "check": "biome check . && pnpm --filter @agent-interaction-kit/website format:check",
-    "format": "biome check --write . && pnpm --filter @agent-interaction-kit/website format"
+    "format": "biome check --write . && pnpm --filter @agent-interaction-kit/website format",
+    "knip": "knip",
+    "knip:production": "knip --production"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.4"
+    "@biomejs/biome": "1.9.4",
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "knip": "^6.34.0"
   }
 }

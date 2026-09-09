@@ -53,5 +53,3 @@ broken.tools[0].returns.schema = {
 };
 export const unknown = structuredClone(provider);
 unknown.tools[0].returns.schema = { type: "object", not: { type: "null" } };
-export const checkCommand =
-  "pnpm --filter @agent-interaction-kit/core aik check --provider aik.provider.json --consumer aik.consumer.json --strict";

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { runCheck } from "../../src/cli/commands/check.js";
 
 describe("CLI runCheck", () => {
@@ -57,6 +57,24 @@ describe("CLI runCheck", () => {
       format: "json",
     });
     expect(exitCode).toBe(2);
+  });
+
+  it("formats root-level validation errors with a readable location", async () => {
+    fs.mkdirSync(tmpDir, { recursive: true });
+    const pPath = path.join(tmpDir, "provider.json");
+    const cPath = path.join(tmpDir, "consumer.json");
+    fs.writeFileSync(pPath, "{}");
+    fs.writeFileSync(cPath, "{}");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const exitCode = await runCheck({ provider: pPath, consumer: cPath });
+
+    expect(exitCode).toBe(2);
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining("Validation error at (root):"),
+    );
+    consoleError.mockRestore();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it("creates nested parent directories when writing report to output file", async () => {

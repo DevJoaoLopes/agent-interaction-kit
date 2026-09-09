@@ -1,4 +1,4 @@
-name: CI
+name: CI Matrix
 
 on:
   push:
@@ -7,36 +7,58 @@ on:
     branches: [main, master]
 
 jobs:
-  core:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 10.26.1
+          version: 10
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm knip
+
+  core-matrix:
+    name: Core (Node ${{ matrix.node-version }}, ${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20.x, 22.x, 24.x]
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @agent-interaction-kit/core typecheck
       - run: pnpm test
       - run: pnpm build:core
+
   website:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 10.26.1
+          version: 10
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
-          cache: pnpm
+          node-version: 22
+          cache: "pnpm"
       - run: pnpm install --frozen-lockfile
+      - run: pnpm build:core
       - run: pnpm build:web
-      - run: pnpm typecheck
-      - run: pnpm check
+      - run: pnpm --filter @agent-interaction-kit/website typecheck
       - run: pnpm --filter @agent-interaction-kit/website exec playwright install --with-deps chromium
       - run: pnpm test:web
       - uses: actions/upload-artifact@v4
