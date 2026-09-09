@@ -1,7 +1,6 @@
 {
   "name": "agent-interaction-kit-workspace",
   "private": true,
-  "packageManager": "pnpm@10.26.1",
   "type": "module",
   "scripts": {
     "dev:web": "pnpm build:core && pnpm --filter @agent-interaction-kit/website dev",
