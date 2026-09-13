@@ -413,3 +413,67 @@ test(".github/workflows/release.yml has pinned actions and release job outputs",
   assert.match(content, /manifest-file:\s*\.release-please-manifest\.json/);
   assert.match(content, /target-branch:\s*main/);
 });
+
+test(".github/workflows/release.yml defines hardened publish job with pinned actions and security gates", () => {
+  const workflowPath = path.join(root, ".github/workflows/release.yml");
+  const content = readFileSync(workflowPath, "utf8");
+
+  // Job definition and conditions
+  assert.match(content, /publish:\s*\n\s*needs:\s*release/);
+  assert.match(content, /runs-on:\s*ubuntu-latest/);
+  assert.match(content, /environment:\s*npm/);
+  assert.match(content, /contents:\s*write/);
+  assert.match(content, /actions:\s*read/);
+  assert.match(content, /id-token:\s*write/);
+  assert.match(
+    content,
+    /github\.event_name == 'push' && needs\.release\.outputs\.created == 'true'/,
+  );
+  assert.match(
+    content,
+    /github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main'/,
+  );
+
+  // Pinned actions with comments
+  assert.match(
+    content,
+    /actions\/checkout@11bd71901bbe5b1630ceea73d27597364c9af683\s+#\s+v4\.2\.2/,
+  );
+  assert.match(
+    content,
+    /pnpm\/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1\s+#\s+v4\.1\.0/,
+  );
+  assert.match(
+    content,
+    /actions\/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020\s+#\s+v4\.4\.0/,
+  );
+  assert.match(
+    content,
+    /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02\s+#\s+v4\.6\.2/,
+  );
+
+  // Node 24 and pnpm v10
+  assert.match(content, /node-version:\s*24/);
+  assert.match(content, /version:\s*10/);
+
+  // Script invocations and checks
+  assert.match(content, /node scripts\/release\/verify-release\.mjs/);
+  assert.match(content, /node scripts\/release\/pack-inspect\.mjs/);
+  assert.match(content, /node scripts\/release\/smoke-package\.mjs/);
+  assert.match(content, /gh release view "\$RELEASE_TAG"/);
+  assert.match(content, /gh release upload "\$RELEASE_TAG"/);
+
+  // Quality gates
+  assert.match(content, /pnpm check/);
+  assert.match(content, /pnpm knip/);
+  assert.match(content, /pnpm --filter @agent-interaction-kit\/core typecheck/);
+  assert.match(content, /pnpm test/);
+  assert.match(content, /pnpm build:core/);
+
+  // Bootstrap mode vs publication
+  assert.match(content, /vars\.NPM_PUBLISH_ENABLED != 'true'/);
+  assert.match(content, /publication-pending\.json/);
+  assert.match(content, /vars\.NPM_PUBLISH_ENABLED == 'true'/);
+  assert.match(content, /npm publish "\$TARBALL_PATH" --access public --tag "\$NPM_CHANNEL"/);
+  assert.match(content, /publication\.json/);
+});
