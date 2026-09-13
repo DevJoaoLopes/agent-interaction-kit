@@ -220,6 +220,7 @@ The repository defines two GitHub deployment environments with restricted deploy
    gh variable set VERCEL_ORG_ID --body "<VERCEL_ORG_ID>" --repo DevJoaoLopes/agent-interaction-kit
    gh variable set VERCEL_PROJECT_ID --body "<VERCEL_PROJECT_ID>" --repo DevJoaoLopes/agent-interaction-kit
    gh variable set SITE_URL --body "https://agent-interaction-kit.vercel.app" --repo DevJoaoLopes/agent-interaction-kit
+   # Note: gh secret set will prompt interactively for the secret value in the terminal to avoid leaking it in shell history:
    gh secret set VERCEL_TOKEN --env vercel-production --repo DevJoaoLopes/agent-interaction-kit
    ```
 6. **Preview vs Production setup**:
