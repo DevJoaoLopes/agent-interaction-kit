@@ -14,4 +14,5 @@ test("rejects invalid, unsupported or mismatched release tags", () => {
   assert.throws(() => validateTag("v2.0.0", "1.0.0"));
   assert.throws(() => validateTag("main", "1.0.0"));
   assert.equal(validateTag("v1.0.0-beta.1", "1.0.0-beta.1"), "next");
+  assert.equal(validateTag("v1.0.0", "1.0.0"), "latest");
 });

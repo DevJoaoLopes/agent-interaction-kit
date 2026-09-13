@@ -64,12 +64,13 @@ export function checkResults(
     const pProps = (pSchema.properties as Record<string, unknown>) || {};
     const cProps = (cSchema.properties as Record<string, Record<string, unknown>>) || {};
     for (const reqProp of cRequired) {
+      const segment = reqProp.replace(/~/g, "~0").replace(/\//g, "~1");
       if (!(reqProp in pProps)) {
         diagnostics.push({
           code: "AIK-RESULT-002",
           severity: "error",
           toolName,
-          path: `/returns/schema/properties/${reqProp}`,
+          path: `/returns/schema/properties/${segment}`,
           message: `Tool "${toolName}": consumer requires result field "${reqProp}", which is missing in provider return schema.`,
         });
       } else {
@@ -84,7 +85,6 @@ export function checkResults(
           cType !== pType &&
           !(cType === "number" && pType === "integer")
         ) {
-          const segment = reqProp.replace(/~/g, "~0").replace(/\//g, "~1");
           diagnostics.push({
             code: "AIK-RESULT-003",
             severity: "error",
@@ -108,11 +108,12 @@ export function checkResults(
       const pItemProps = (pItems.properties as Record<string, unknown>) || {};
       for (const reqProp of cItemRequired) {
         if (!(reqProp in pItemProps)) {
+          const segment = reqProp.replace(/~/g, "~0").replace(/\//g, "~1");
           diagnostics.push({
             code: "AIK-RESULT-002",
             severity: "error",
             toolName,
-            path: `/returns/schema/items/properties/${reqProp}`,
+            path: `/returns/schema/items/properties/${segment}`,
             message: `Tool "${toolName}": consumer requires field "${reqProp}" on array items, but provider does not declare it.`,
           });
         }
