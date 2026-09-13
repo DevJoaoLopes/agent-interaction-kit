@@ -123,6 +123,12 @@ test("deploy-website.yml: verifies ancestry, inputs, quality gates, candidate de
   assert.match(raw, /node scripts\/docs\/verify-published\.mjs/);
   assert.match(raw, /SITE_TEST_URL="\$DEPLOY_URL"\s+pnpm test:web/);
 
+  // Pre-promotion freshness revalidation
+  assert.match(raw, /name: Revalidate freshness immediately prior to promotion/);
+  assert.match(raw, /compareSemver/);
+  assert.match(raw, /git merge-base --is-ancestor/);
+  assert.match(raw, /Recovery deployment bypasses freshness checks/);
+
   // Vercel promotion
   assert.match(raw, /pnpm exec vercel promote "\$DEPLOY_URL" --yes/);
 
@@ -130,6 +136,10 @@ test("deploy-website.yml: verifies ancestry, inputs, quality gates, candidate de
   assert.match(raw, /\/version\.json/);
   assert.match(raw, /\/robots\.txt/);
   assert.match(raw, /\/sitemap\.xml/);
+  assert.match(raw, /\/examples\/provider\.json/);
+  assert.match(raw, /\/examples\/consumer\.json/);
+  assert.match(raw, /rel=\\"canonical\\"/);
+  assert.match(raw, /attempt \$\{i\}\/12/);
 });
 
 test("website-main.yml: parses cleanly and triggers on CI Matrix push to main", () => {
@@ -159,7 +169,11 @@ test("website-main.yml: parses cleanly and triggers on CI Matrix push to main", 
   assert.match(cond, /github\.event\.workflow_run\.conclusion == 'success'/);
   assert.match(cond, /github\.repository == 'DevJoaoLopes\/agent-interaction-kit'/);
 
-  // Classify job steps
+  // Classify job steps, git diff handling, and exported environment variables
+  assert.match(raw, /git diff-tree --no-commit-id --name-only -r -m "\$HEAD_SHA" \| sort -u/);
+  assert.match(raw, /export CHANGED_FILES/);
+  assert.match(raw, /export PUBLICATIONS/);
+  assert.match(raw, /export CURRENT_SITE/);
   assert.match(raw, /scripts\/deploy\/policy\.mjs classify/);
   assert.match(raw, /gh release list/);
   assert.match(raw, /scripts\/deploy\/policy\.mjs evaluate/);

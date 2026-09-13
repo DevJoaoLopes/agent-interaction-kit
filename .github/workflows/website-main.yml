@@ -56,8 +56,8 @@ jobs:
         run: |
           echo "Analyzing commit: $HEAD_SHA in repo $REPO"
 
-          # 1. Extract changed files in candidate commit
-          CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r "$HEAD_SHA")
+          # 1. Extract changed files in candidate commit (handling merge commits cleanly)
+          CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r -m "$HEAD_SHA" | sort -u)
           if [ -z "$CHANGED_FILES" ]; then
             echo "No changed files detected in $HEAD_SHA. Skipping deployment."
             echo "should_deploy=false" >> "$GITHUB_OUTPUT"
@@ -65,6 +65,7 @@ jobs:
           fi
           echo "Changed files:"
           echo "$CHANGED_FILES"
+          export CHANGED_FILES
 
           FILES_CSV=$(echo "$CHANGED_FILES" | paste -sd, -)
 
@@ -112,19 +113,23 @@ jobs:
           done
 
           echo "Found $(echo "$PUBLICATIONS" | jq 'length') candidate publication assets."
+          export PUBLICATIONS
 
           # 4. Check current promoted site metadata
           CURRENT_SITE="null"
           if [ -n "$SITE_URL" ]; then
             CURRENT_SITE=$(curl -sSf "${SITE_URL%/}/version.json" 2>/dev/null || echo "null")
           fi
+          export CURRENT_SITE
 
           # 5. Evaluate deploy promotion using policy.mjs evaluate
           EVAL_INPUT=$(node -e '
-            const files = process.env.CHANGED_FILES.split("\n").filter(Boolean);
-            const pubs = JSON.parse(process.env.PUBLICATIONS);
+            const rawFiles = process.env.CHANGED_FILES || "";
+            const files = rawFiles.split("\n").map((s) => s.trim()).filter(Boolean);
+            let pubs = [];
+            try { pubs = JSON.parse(process.env.PUBLICATIONS || "[]"); } catch {}
             let current = null;
-            try { current = JSON.parse(process.env.CURRENT_SITE); } catch {}
+            try { current = JSON.parse(process.env.CURRENT_SITE || "null"); } catch {}
             const input = {
               event: "push",
               conclusion: "success",
