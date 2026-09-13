@@ -392,5 +392,5 @@ To verify that the branch protection ruleset and required checks operate as desi
 
 | PR Identifier | Branch | Title | Status | Monitored Checks | Observed Ruleset Behavior |
 | --- | --- | --- | --- | --- | --- |
-| **PR A** | `feat/oss-governance` | `ci(governance): add rulesets and governance operations guide` | Pending remote branch push & PR creation | `CI required` (#15368), `PR title` (#15368) | Merge blocked until both checks succeed; solo self-merge allowed once green; direct pushes to `main` blocked. |
+| **PR A** | `feat/oss-governance` | `docs(governance): setup oss governance, branch protection, and ci gates` | [PR #21](https://github.com/DevJoaoLopes/agent-interaction-kit/pull/21) (CLEAN, Verified) | `CI required` (#15368), `PR title` (#15368) | Verified: merge blocked on invalid title and pending checks; unblocked to CLEAN once green; solo maintainer self-merge permitted. |
 
