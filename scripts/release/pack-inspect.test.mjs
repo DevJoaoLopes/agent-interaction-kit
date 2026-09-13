@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -161,6 +163,12 @@ test("validatePackContents rejects missing bin target", () => {
 
 test("inspectPackage validates real packages/core npm pack dry-run", () => {
   const coreDir = path.join(root, "packages/core");
+  if (!existsSync(path.join(coreDir, "dist/index.js"))) {
+    execFileSync("pnpm", ["--filter", "@agent-interaction-kit/core", "build"], {
+      cwd: root,
+      stdio: "ignore",
+    });
+  }
   const result = inspectPackage(coreDir);
   assert.ok(result.filePaths.length > 0);
   assert.ok(result.requiredTargets.length > 0);

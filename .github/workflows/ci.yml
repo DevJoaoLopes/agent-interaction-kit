@@ -94,8 +94,8 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test:release
       - run: pnpm build:core
+      - run: pnpm test:release
       - name: Pack and smoke core package
         run: |
           TMP_DIR=$(mktemp -d)
