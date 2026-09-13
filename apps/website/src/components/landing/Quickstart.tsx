@@ -43,14 +43,14 @@ export default function Quickstart({ version }: { version: string }) {
           Copy command
         </button>
       </div>
-      <TabsContent value="install">
+      <TabsContent value="install" forceMount hidden={tab !== "install"}>
         <pre className="code-block">
-          <code>{install}</code>
+          <code data-doc-command="quickstart-install">{install}</code>
         </pre>
       </TabsContent>
-      <TabsContent value="check">
+      <TabsContent value="check" forceMount hidden={tab !== "check"}>
         <pre className="code-block">
-          <code>{check}</code>
+          <code data-doc-command="quickstart-check">{check}</code>
         </pre>
       </TabsContent>
       <output className="copy-status">{message}</output>

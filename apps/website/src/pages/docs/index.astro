@@ -29,7 +29,7 @@ const displayVersion = isUnreleased ? "1.0.0-beta.1" : releaseInfo.version;
       ) : (
         <p>
           Install <code>@agent-interaction-kit/core</code> in your project with{" "}
-          <code>
+          <code data-doc-command="docs-install">
             npm install --save-dev --save-exact @agent-interaction-kit/core@{releaseInfo.version}
           </code>
           .
@@ -70,12 +70,12 @@ const displayVersion = isUnreleased ? "1.0.0-beta.1" : releaseInfo.version;
     <h2>03 / Check the contract</h2>
     <p>Run the check using the installed package binary:</p>
     <pre
-      class="code-block"><code>npx --no-install aik check \
+      class="code-block"><code data-doc-command="docs-check">npx --no-install aik check \
   --provider aik.provider.json \
   --consumer aik.consumer.json --strict</code></pre>
     <p>For ad-hoc execution without installing the package locally:</p>
     <pre
-      class="code-block"><code>{`pnpm dlx @agent-interaction-kit/core@${displayVersion} check \\\n  --provider aik.provider.json \\\n  --consumer aik.consumer.json --strict`}</code></pre>
+      class="code-block"><code data-doc-command="docs-dlx">{`pnpm dlx @agent-interaction-kit/core@${displayVersion} check \\\n  --provider aik.provider.json \\\n  --consumer aik.consumer.json --strict`}</code></pre>
     <p>
       Rename <code>total</code> to <code>amount</code> in the provider's return schema, including its
       required list. Run again: AIK reports <code>AIK-RESULT-002</code> and exits with code 1. Restore
@@ -86,7 +86,7 @@ const displayVersion = isUnreleased ? "1.0.0-beta.1" : releaseInfo.version;
       Add a contract test script to your <code>package.json</code>:
     </p>
     <pre
-      class="code-block"><code>{`{
+      class="code-block"><code data-doc-command="docs-script">{`{
   "scripts": {
     "test:contracts": "aik check --provider aik.provider.json --consumer aik.consumer.json --strict"
   }
@@ -95,7 +95,7 @@ const displayVersion = isUnreleased ? "1.0.0-beta.1" : releaseInfo.version;
       In CI (e.g. GitHub Actions), perform a frozen dependency install and run your contract test:
     </p>
     <pre
-      class="code-block"><code>- name: Install dependencies
+      class="code-block"><code data-doc-command="docs-ci">- name: Install dependencies
   run: npm ci
 
 - name: Test contracts

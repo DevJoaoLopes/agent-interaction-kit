@@ -66,13 +66,16 @@ test("reduced motion uses the static narrative", async ({ page }) => {
   await expect(page.locator(".animated-story")).toBeHidden();
 });
 
-test("without JavaScript the narrative and quickstart are readable", async ({ browser }) => {
-  const context = await browser.newContext({ javaScriptEnabled: false });
+test("without JavaScript the narrative and quickstart are readable", async ({
+  browser,
+  baseURL,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, baseURL });
   const page = await context.newPage();
-  await page.goto("http://127.0.0.1:4322/");
+  await page.goto("/");
   await expect(page.locator(".static-story")).toBeVisible();
   await expect(page.locator(".static-story .story-scene")).toHaveCount(4);
-  await page.goto("http://127.0.0.1:4322/docs/");
+  await page.goto("/docs/");
   await expect(page.locator(".code-block").first()).toContainText(
     /pnpm build:core|@agent-interaction-kit\/core/,
   );

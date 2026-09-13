@@ -2,8 +2,8 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "workspaces": {
     ".": {
-      "entry": ["scripts/release/*.mjs"],
-      "project": ["scripts/release/*.mjs"]
+      "entry": ["scripts/**/*.mjs"],
+      "project": ["scripts/**/*.mjs"]
     },
     "packages/core": {
       "entry": [
