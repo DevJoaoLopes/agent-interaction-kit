@@ -6,7 +6,8 @@
   "author": "João Victor Lopes (https://github.com/DevJoaoLopes)",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DevJoaoLopes/agent-interaction-kit.git"
+    "url": "git+https://github.com/DevJoaoLopes/agent-interaction-kit.git",
+    "directory": "packages/core"
   },
   "bugs": {
     "url": "https://github.com/DevJoaoLopes/agent-interaction-kit/issues"
@@ -47,7 +48,10 @@
       "types": "./dist/reporters/index.d.ts"
     }
   },
-  "files": ["dist", "bin"],
+  "engines": {
+    "node": ">=20"
+  },
+  "files": ["dist"],
   "scripts": {
     "aik": "node dist/bin/aik.js",
     "build": "tsup",
