@@ -11,6 +11,8 @@ const root = path.resolve(__dirname, "../..");
 const deployWorkflowPath = path.join(root, ".github/workflows/deploy-website.yml");
 const websiteMainWorkflowPath = path.join(root, ".github/workflows/website-main.yml");
 const releaseWorkflowPath = path.join(root, ".github/workflows/release.yml");
+const docsHealthWorkflowPath = path.join(root, ".github/workflows/docs-health.yml");
+const ciWorkflowPath = path.join(root, ".github/workflows/ci.yml");
 
 test("deploy-website.yml: parses cleanly and defines workflow_call and workflow_dispatch triggers", () => {
   assert.ok(existsSync(deployWorkflowPath), "deploy-website.yml must exist");
@@ -219,4 +221,49 @@ test("release.yml: publishes outputs and triggers downstream deploy-site job whe
   assert.equal(deploySiteJob.with["release-tag"], "${{ needs.publish.outputs.tag }}");
   assert.equal(deploySiteJob.with["package-version"], "${{ needs.publish.outputs.version }}");
   assert.equal(deploySiteJob.with.reason, "release");
+});
+
+test("docs-health.yml: parses cleanly, triggers on weekly schedule and workflow_dispatch, and enforces read-only permissions", () => {
+  assert.ok(existsSync(docsHealthWorkflowPath), "docs-health.yml must exist");
+  const raw = readFileSync(docsHealthWorkflowPath, "utf8");
+  const doc = YAML.parse(raw);
+
+  assert.equal(doc.name, "Docs Health");
+
+  // Triggers: schedule and workflow_dispatch
+  assert.ok(doc.on?.schedule, "Must define schedule trigger");
+  assert.deepEqual(doc.on.schedule, [{ cron: "0 9 * * 1" }]);
+  assert.notEqual(doc.on?.workflow_dispatch, undefined, "Must define workflow_dispatch trigger");
+
+  // Permissions strictly contents: read
+  assert.deepEqual(doc.permissions, {
+    contents: "read",
+  });
+
+  // No write permissions or secrets leaking
+  assert.doesNotMatch(raw, /issues:\s*write/);
+  assert.doesNotMatch(raw, /contents:\s*write/);
+
+  // Pinned action SHAs
+  assert.match(raw, /actions\/checkout@11bd71901bbe5b1630ceea73d27597364c9af683\s+#\s+v4\.2\.2/);
+  assert.match(raw, /pnpm\/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1\s+#\s+v4\.1\.0/);
+  assert.match(raw, /actions\/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020\s+#\s+v4\.4\.0/);
+
+  // Invocations of verify-published.mjs and test:web
+  assert.match(raw, /node scripts\/docs\/verify-published\.mjs/);
+  assert.match(raw, /pnpm test:web/);
+});
+
+test("ci.yml: website job runs pnpm test:docs to validate documentation snippets", () => {
+  assert.ok(existsSync(ciWorkflowPath), "ci.yml must exist");
+  const raw = readFileSync(ciWorkflowPath, "utf8");
+  const doc = YAML.parse(raw);
+
+  const websiteJob = doc.jobs?.website;
+  assert.ok(websiteJob, "Must define website job");
+  const steps = websiteJob.steps;
+  assert.ok(Array.isArray(steps), "Website job steps must be an array");
+
+  const hasTestDocs = steps.some((step) => step.run === "pnpm test:docs");
+  assert.ok(hasTestDocs, "Website job must include step running 'pnpm test:docs'");
 });
