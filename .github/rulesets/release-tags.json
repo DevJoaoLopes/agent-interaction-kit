@@ -14,7 +14,7 @@
       "type": "deletion"
     },
     {
-      "type": "non_fast_forward"
+      "type": "update"
     }
   ]
 }

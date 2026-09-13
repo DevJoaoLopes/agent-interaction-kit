@@ -134,6 +134,10 @@ The repository defines two GitHub deployment environments with restricted deploy
    *Note: If the scope name is unavailable, do not silently rename the package in code; coordinate scope selection with the maintainer.*
 3. **Bootstrap first release (`1.0.0-beta.1`)**:
    - npm requires that a package exists before configuring Trusted Publishers.
+   - Set or verify package version to `1.0.0-beta.1` (managed systematically in Plan 2):
+     ```bash
+     pnpm --filter @agent-interaction-kit/core version 1.0.0-beta.1 --no-git-tag-version
+     ```
    - Build and test the core package locally:
      ```bash
      pnpm --filter @agent-interaction-kit/core build

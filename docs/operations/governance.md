@@ -133,7 +133,7 @@ Defined in [`.github/rulesets/release-tags.json`](../../.github/rulesets/release
       "type": "deletion"
     },
     {
-      "type": "non_fast_forward"
+      "type": "update"
     }
   ]
 }
@@ -143,7 +143,7 @@ Defined in [`.github/rulesets/release-tags.json`](../../.github/rulesets/release
 
 1. **Target**: Applies to all tags matching the pattern `refs/tags/v*` (e.g., `v1.0.0`, `v1.0.0-beta.1`).
 2. **`deletion`**: Prohibits deleting release tags once pushed.
-3. **`non_fast_forward`**: Prohibits moving, overwriting, or force-updating existing release tags.
+3. **`update`**: Prohibits updating, moving, or advancing existing release tags to any other commit.
 4. **No `creation` rule**: Tag creation is deliberately unconstrained by ruleset creation blockers so that the automated release workflow (`AIK Release Bot` or maintainer) can push new tags upon release PR merges.
 
 ---
@@ -384,7 +384,7 @@ To verify that the branch protection ruleset and required checks operate as desi
 5. **Direct Push & Deletion Invariance**:
    Verify branch immutability:
    - Direct push to `refs/heads/main` rejected by `main-protection` (`deletion`, `non_fast_forward`, `required_linear_history`, `pull_request`).
-   - Direct push/delete to `refs/tags/v*` rejected by `release-tags-protection` (`deletion`, `non_fast_forward`).
+   - Direct push/delete to `refs/tags/v*` rejected by `release-tags-protection` (`deletion`, `update`).
 
 ---
 
