@@ -9,7 +9,7 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 export function extractTargets(value, targets = []) {
   if (!value) return targets;
   if (typeof value === "string") {
-    targets.push(value.replace(/^\.\//, ""));
+    targets.push(path.posix.normalize(value.replace(/^\.\//, "")));
     return targets;
   }
   if (Array.isArray(value)) {
