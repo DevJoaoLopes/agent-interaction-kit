@@ -80,6 +80,52 @@ import Layout from "../../layouts/Layout.astro";
       code, or prove that the implementation matches its manifest. Keep contracts reviewed and
       updated alongside code.
     </p>
+    <h2>05 / Diagnostic codes</h2>
+    <p>
+      AIK emits standardized diagnostic codes to report breaking schema drifts, missing
+      capabilities, or unsupported constructs:
+    </p>
+    <div class="table-scroll">
+      <table>
+        <caption>Diagnostic codes emitted by aik check</caption><thead
+          ><tr><th>Code</th><th>Severity</th><th>Description</th></tr></thead
+        ><tbody
+          ><tr
+            ><td><code>AIK-TOOL-001</code></td><td>Error</td><td
+              >Required tool missing in provider manifest.</td
+            ></tr
+          ><tr
+            ><td><code>AIK-TOOL-002</code></td><td>Error</td><td
+              >Execution side mismatch (e.g. backend vs frontend).</td
+            ></tr
+          ><tr
+            ><td><code>AIK-INPUT-001</code></td><td>Error</td><td
+              >Mandatory parameter requirement violation (contravariance).</td
+            ></tr
+          ><tr
+            ><td><code>AIK-INPUT-002</code></td><td>Error</td><td
+              >Parameter enum restriction mismatch (contravariance).</td
+            ></tr
+          ><tr
+            ><td><code>AIK-RESULT-001</code></td><td>Error</td><td
+              >Result root type mismatch or missing return schema.</td
+            ></tr
+          ><tr
+            ><td><code>AIK-RESULT-002</code></td><td>Error</td><td
+              >Required result field is missing from provider return schema.</td
+            ></tr
+          ><tr
+            ><td><code>AIK-RESULT-003</code></td><td>Error</td><td
+              >Required result field scalar type is incompatible.</td
+            ></tr
+          ><tr
+            ><td><code>AIK-SCHEMA-001</code></td><td>Unknown</td><td
+              >Schema contains unsupported constructs (e.g. not, $ref).</td
+            ></tr
+          ></tbody
+        >
+      </table>
+    </div>
     <a class="text-link" href="https://github.com/DevJoaoLopes/agent-interaction-kit"
       >Explore the source and full CLI reference ↗</a
     >

@@ -216,6 +216,7 @@ Workflows execute on `pull_request` triggers using read-only tokens (`contents: 
 - Opens and updates release pull requests via `release-please`.
 - Pushes release tags (`v*`) upon release PR merge.
 - Operates without bypass rights (`bypass_actors: []`). The maintainer must review and merge release PRs.
+- For complete details on release automation, bootstrap, and recovery runbooks, refer to the [Release Operations and Recovery Runbook](./releases.md).
 
 ---
 

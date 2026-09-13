@@ -134,19 +134,8 @@ The repository defines two GitHub deployment environments with restricted deploy
    *Note: If the scope name is unavailable, do not silently rename the package in code; coordinate scope selection with the maintainer.*
 3. **Bootstrap first release (`1.0.0-beta.1`)**:
    - npm requires that a package exists before configuring Trusted Publishers.
-   - Set or verify package version to `1.0.0-beta.1` (managed systematically in Plan 2):
-     ```bash
-     pnpm --filter @agent-interaction-kit/core version 1.0.0-beta.1 --no-git-tag-version
-     ```
-   - Build and test the core package locally:
-     ```bash
-     pnpm --filter @agent-interaction-kit/core build
-     pnpm --filter @agent-interaction-kit/core test
-     ```
-   - Publish the initial `1.0.0-beta.1` release with dist-tag `next` using maintainer session:
-     ```bash
-     pnpm --filter @agent-interaction-kit/core publish --access public --tag next
-     ```
+   - For the authoritative end-to-end bootstrap procedure using verified CI tarballs, publication guards, and reconciliation testing, follow the [Release Operations and Recovery Runbook](./releases.md#2-maintainer-bootstrap-guide-first-release-100-beta1).
+   - *Summary*: The maintainer merges the initial Release PR with `NPM_PUBLISH_ENABLED=false`, downloads the verified CI tarball (`agent-interaction-kit-core-1.0.0-beta.1.tgz`) from GitHub Release assets, verifies its SRI sha512 checksum, and publishes it via `npm publish <tarball> --access public --tag next`. Ensure accidental default `latest` dist-tag is removed if assigned by npm.
 4. **Configure npm Trusted Publisher**:
    - Go to `https://www.npmjs.com/package/@agent-interaction-kit/core/access`.
    - Under **Trusted Publishers**, click **Add Trusted Publisher** -> **GitHub Actions**.

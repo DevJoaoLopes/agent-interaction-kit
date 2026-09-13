@@ -167,6 +167,21 @@ if (provider.ok && consumer.ok) {
 
 ---
 
+## 📋 Diagnostic Codes
+
+| Code | Severity | Description |
+| :--- | :--- | :--- |
+| **`AIK-TOOL-001`** | `error` | Required tool is missing from the provider manifest. |
+| **`AIK-TOOL-002`** | `error` | Tool execution side mismatch (e.g., backend vs frontend). |
+| **`AIK-INPUT-001`** | `error` | Mandatory parameter requirement violation (contravariance). |
+| **`AIK-INPUT-002`** | `error` | Parameter enum restriction mismatch (contravariance). |
+| **`AIK-RESULT-001`** | `error` | Result root type mismatch or missing structured return schema (covariance). |
+| **`AIK-RESULT-002`** | `error` | Required result property missing from provider return schema (covariance). |
+| **`AIK-RESULT-003`** | `error` | Required result property scalar type incompatible with consumer expectation (covariance). |
+| **`AIK-SCHEMA-001`** | `unknown` | Schema contains unsupported constructs outside the safe subset (e.g., `not`, `$ref`). |
+
+---
+
 ## 📄 License
 
 MIT © [João Victor Lopes](https://github.com/DevJoaoLopes)

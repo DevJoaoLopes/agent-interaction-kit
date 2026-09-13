@@ -2,6 +2,8 @@ import type { ToolDescriptor, ToolReturnDescriptor } from "../../contracts/types
 import type { Diagnostic } from "../diagnostics.js";
 import { findUnsupportedConstruct } from "./schema-safety.js";
 
+const SCALAR_TYPES = new Set(["string", "number", "integer", "boolean", "null"]);
+
 export function checkResults(
   consumerExpectedReturns: ToolReturnDescriptor | undefined,
   providerTool: ToolDescriptor,
@@ -60,15 +62,39 @@ export function checkResults(
   if (cSchema.type === "object" && pSchema.type === "object") {
     const cRequired = (cSchema.required as string[]) || [];
     const pProps = (pSchema.properties as Record<string, unknown>) || {};
+    const cProps = (cSchema.properties as Record<string, Record<string, unknown>>) || {};
     for (const reqProp of cRequired) {
+      const segment = reqProp.replace(/~/g, "~0").replace(/\//g, "~1");
       if (!(reqProp in pProps)) {
         diagnostics.push({
           code: "AIK-RESULT-002",
           severity: "error",
           toolName,
-          path: `/returns/schema/properties/${reqProp}`,
+          path: `/returns/schema/properties/${segment}`,
           message: `Tool "${toolName}": consumer requires result field "${reqProp}", which is missing in provider return schema.`,
         });
+      } else {
+        const pField = pProps[reqProp] as Record<string, unknown> | undefined;
+        const cType = cProps[reqProp]?.type;
+        const pType = pField?.type;
+        if (
+          typeof cType === "string" &&
+          typeof pType === "string" &&
+          SCALAR_TYPES.has(cType) &&
+          SCALAR_TYPES.has(pType) &&
+          cType !== pType &&
+          !(cType === "number" && pType === "integer")
+        ) {
+          diagnostics.push({
+            code: "AIK-RESULT-003",
+            severity: "error",
+            toolName,
+            path: `/returns/schema/properties/${segment}/type`,
+            message: `Tool "${toolName}": result field "${reqProp}" type is incompatible.`,
+            expected: cType,
+            actual: pType,
+          });
+        }
       }
     }
   }
@@ -82,11 +108,12 @@ export function checkResults(
       const pItemProps = (pItems.properties as Record<string, unknown>) || {};
       for (const reqProp of cItemRequired) {
         if (!(reqProp in pItemProps)) {
+          const segment = reqProp.replace(/~/g, "~0").replace(/\//g, "~1");
           diagnostics.push({
             code: "AIK-RESULT-002",
             severity: "error",
             toolName,
-            path: `/returns/schema/items/properties/${reqProp}`,
+            path: `/returns/schema/items/properties/${segment}`,
             message: `Tool "${toolName}": consumer requires field "${reqProp}" on array items, but provider does not declare it.`,
           });
         }
