@@ -34,6 +34,6 @@ This skill instructs an AI coding agent on how to inspect an application codebas
 ## 3. Validation
 After generating the manifests, run:
 ```bash
-npx aik check --provider ./path/to/aik.provider.json --consumer ./path/to/aik.consumer.json
+npx --no-install aik check --provider ./path/to/aik.provider.json --consumer ./path/to/aik.consumer.json
 ```
 Ensure exit code is 0 before committing.

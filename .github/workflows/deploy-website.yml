@@ -1,0 +1,335 @@
+name: Deploy Website
+
+on:
+  workflow_call:
+    inputs:
+      site-sha:
+        description: Commit SHA of the website to build and promote
+        required: true
+        type: string
+      release-tag:
+        description: Verified release tag (e.g. v1.0.0-beta.1)
+        required: true
+        type: string
+      package-version:
+        description: Verified package version (e.g. 1.0.0-beta.1)
+        required: true
+        type: string
+      reason:
+        description: Promotion reason (release, website, recovery)
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      site-sha:
+        description: Commit SHA of the website to deploy
+        required: true
+        type: string
+      release-tag:
+        description: Verified release tag
+        required: true
+        type: string
+      package-version:
+        description: Verified package version
+        required: true
+        type: string
+      reason:
+        description: Deployment reason
+        required: true
+        default: recovery
+        type: choice
+        options:
+          - recovery
+          - release
+          - website
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aik-site-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: vercel-production
+    steps:
+      - name: Validate input parameters
+        run: |
+          SITE_SHA="${{ inputs.site-sha }}"
+          RELEASE_TAG="${{ inputs.release-tag }}"
+          PKG_VERSION="${{ inputs.package-version }}"
+          REASON="${{ inputs.reason }}"
+
+          if [[ ! "$SITE_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "::error::site-sha must be a full 40-character hexadecimal Git SHA (got: $SITE_SHA)"
+            exit 1
+          fi
+
+          EXPECTED_TAG="v${PKG_VERSION}"
+          if [ "$RELEASE_TAG" != "$EXPECTED_TAG" ]; then
+            echo "::error::release-tag ($RELEASE_TAG) does not match expected tag format 'v${PKG_VERSION}'"
+            exit 1
+          fi
+
+          if [ "$REASON" != "release" ] && [ "$REASON" != "website" ] && [ "$REASON" != "recovery" ]; then
+            echo "::error::reason must be one of: release, website, recovery (got: $REASON)"
+            exit 1
+          fi
+
+          echo "Inputs validated successfully:"
+          echo "  site-sha:        $SITE_SHA"
+          echo "  release-tag:     $RELEASE_TAG"
+          echo "  package-version: $PKG_VERSION"
+          echo "  reason:          $REASON"
+
+      - name: Checkout candidate commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.site-sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify candidate ancestry against origin/main
+        run: |
+          git fetch origin main:refs/remotes/origin/main --force
+          if ! git merge-base --is-ancestor "${{ inputs.site-sha }}" origin/main; then
+            echo "::error::Candidate SHA ${{ inputs.site-sha }} is not an ancestor of origin/main"
+            exit 1
+          fi
+          echo "Commit ${{ inputs.site-sha }} verified as ancestor of origin/main"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.1.0
+        with:
+          version: 10
+
+      - name: Setup Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run candidate quality gates
+        run: |
+          pnpm check
+          pnpm knip
+          pnpm typecheck
+          pnpm test
+
+      - name: Pull Vercel environment config
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        run: |
+          pnpm exec vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
+
+      - name: Build production bundle
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          PUBLIC_AIK_VERSION: ${{ inputs.package-version }}
+          PUBLIC_AIK_RELEASE_TAG: ${{ inputs.release-tag }}
+          PUBLIC_SITE_SHA: ${{ inputs.site-sha }}
+          SITE_URL: ${{ vars.SITE_URL }}
+          VERCEL_ENV: production
+        run: |
+          pnpm exec vercel build --prod --token "$VERCEL_TOKEN"
+          if [ -d ".vercel/output" ]; then
+            echo "Prebuilt output verified at .vercel/output"
+          elif [ -d "apps/website/.vercel/output" ]; then
+            echo "Prebuilt output found at apps/website/.vercel/output"
+          else
+            echo "::error::Prebuilt output (.vercel/output) not found after vercel build"
+            exit 1
+          fi
+
+      - name: Deploy prebuilt candidate with --skip-domain
+        id: deploy_candidate
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+        run: |
+          DEPLOY_OUTPUT=$(pnpm exec vercel deploy --prebuilt --prod --skip-domain --token "$VERCEL_TOKEN")
+          DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -E '^https://' | tail -n 1)
+          if [ -z "$DEPLOY_URL" ]; then
+            DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | tail -n 1 | tr -d '\r\n ')
+          fi
+
+          if [[ ! "$DEPLOY_URL" =~ ^https:// ]]; then
+            echo "::error::Failed to extract deployment URL. Raw output: $DEPLOY_OUTPUT"
+            exit 1
+          fi
+
+          echo "Candidate deployment URL: $DEPLOY_URL"
+          echo "deploy_url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Install Playwright browser dependencies
+        run: pnpm --filter @agent-interaction-kit/website exec playwright install --with-deps chromium
+
+      - name: Verify candidate deployment URL
+        env:
+          DEPLOY_URL: ${{ steps.deploy_candidate.outputs.deploy_url }}
+          PKG_VERSION: ${{ inputs.package-version }}
+          SITE_SHA: ${{ inputs.site-sha }}
+        run: |
+          echo "Verifying candidate deployment at $DEPLOY_URL..."
+          node scripts/docs/verify-published.mjs "$DEPLOY_URL" --expected-version "$PKG_VERSION" --expected-site-sha "$SITE_SHA"
+          SITE_TEST_URL="$DEPLOY_URL" pnpm test:web
+
+      - name: Revalidate freshness immediately prior to promotion
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          CANDIDATE_VERSION: ${{ inputs.package-version }}
+          CANDIDATE_SHA: ${{ inputs.site-sha }}
+          REASON: ${{ inputs.reason }}
+        run: |
+          echo "Revalidating freshness against live production site before promotion..."
+          node -e '
+            import assert from "node:assert/strict";
+            import { execFileSync } from "node:child_process";
+            import { compareSemver } from "./scripts/release/policy.mjs";
+
+            const siteUrl = process.env.SITE_URL;
+            const candidateVersion = process.env.CANDIDATE_VERSION;
+            const candidateSha = process.env.CANDIDATE_SHA;
+            const reason = process.env.REASON;
+
+            if (!siteUrl) {
+              console.log("No SITE_URL defined; skipping pre-promote live freshness query.");
+              process.exit(0);
+            }
+
+            if (reason === "recovery") {
+              console.log("Recovery deployment bypasses freshness checks for deliberate rollback/repair.");
+              process.exit(0);
+            }
+
+            async function checkFreshness() {
+              const res = await fetch(`${siteUrl.replace(/\/$/, "")}/version.json`, { cache: "no-store" }).catch(() => null);
+              if (!res || !res.ok) {
+                console.log("Live version.json not reachable; proceeding with promotion.");
+                return;
+              }
+              const current = await res.json().catch(() => null);
+              if (!current || !current.version || current.version === "unreleased") {
+                console.log("Live site has no verified release version; proceeding with promotion.");
+                return;
+              }
+
+              console.log(`Live site version: ${current.version} (SHA: ${current.siteSha})`);
+              console.log(`Candidate version: ${candidateVersion} (SHA: ${candidateSha})`);
+
+              // Compare SemVer: candidate version cannot be older than currently promoted version
+              const semverDiff = compareSemver(candidateVersion, current.version);
+              if (semverDiff < 0) {
+                throw new Error(`Promotion blocked: candidate version (${candidateVersion}) would downgrade live site (${current.version})`);
+              }
+
+              // If candidate version equals current version, verify Git ancestry
+              if (semverDiff === 0 && current.siteSha && current.siteSha !== "local" && current.siteSha !== candidateSha) {
+                try {
+                  execFileSync("git", ["merge-base", "--is-ancestor", current.siteSha, candidateSha]);
+                  console.log(`Ancestry confirmed: live site SHA (${current.siteSha}) is an ancestor of candidate (${candidateSha})`);
+                } catch {
+                  throw new Error(`Promotion blocked: candidate SHA (${candidateSha}) is not a descendant of live site SHA (${current.siteSha}) for same version`);
+                }
+              }
+            }
+
+            checkFreshness().catch((err) => {
+              console.error("Freshness revalidation failed:", err.message);
+              process.exit(1);
+            });
+          '
+
+      - name: Promote to production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          DEPLOY_URL: ${{ steps.deploy_candidate.outputs.deploy_url }}
+        run: |
+          echo "Promoting deployment $DEPLOY_URL to production..."
+          pnpm exec vercel promote "$DEPLOY_URL" --yes --token "$VERCEL_TOKEN"
+
+      - name: Verify public production domain
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          EXPECTED_VERSION: ${{ inputs.package-version }}
+          EXPECTED_SHA: ${{ inputs.site-sha }}
+        run: |
+          echo "Verifying public domain: $SITE_URL"
+          node -e '
+            import assert from "node:assert/strict";
+            const siteUrl = process.env.SITE_URL;
+            if (!siteUrl) {
+              console.log("SITE_URL variable is empty; skipping public domain check.");
+              process.exit(0);
+            }
+            const baseUrl = siteUrl.replace(/\/$/, "");
+            const expectedVersion = process.env.EXPECTED_VERSION;
+            const expectedSha = process.env.EXPECTED_SHA;
+
+            async function checkEndpoint(path, validator) {
+              const url = `${baseUrl}${path}`;
+              const res = await fetch(url);
+              assert.equal(res.status, 200, `Expected HTTP 200 from ${url}, got ${res.status}`);
+              const text = await res.text();
+              if (validator) validator(text);
+            }
+
+            async function main() {
+              let verified = false;
+              for (let i = 1; i <= 12; i++) {
+                try {
+                  const res = await fetch(`${baseUrl}/version.json`, { cache: "no-store" });
+                  if (res.status === 200) {
+                    const data = await res.json();
+                    if (data.version === expectedVersion && data.siteSha === expectedSha) {
+                      verified = true;
+                      console.log(`Public production domain confirmed: version ${data.version}, siteSha ${data.siteSha}`);
+                      break;
+                    }
+                    console.log(`Waiting for CDN cache update: got version ${data.version}, sha ${data.siteSha} (attempt ${i}/12)...`);
+                  }
+                } catch (e) {
+                  console.log(`Fetch error on attempt ${i}/12: ${e.message}`);
+                }
+                await new Promise((r) => setTimeout(r, 5000));
+              }
+              assert.ok(verified, `Public production domain ${baseUrl}/version.json did not report expected version ${expectedVersion} and sha ${expectedSha}`);
+
+              await checkEndpoint("/", (text) => {
+                assert.ok(text.length > 0, "Root page empty");
+                assert.ok(text.includes("rel=\"canonical\""), "Root page missing canonical link");
+              });
+              await checkEndpoint("/docs/", (text) => {
+                assert.ok(text.length > 0, "Docs page empty");
+                assert.ok(text.includes("rel=\"canonical\""), "Docs page missing canonical link");
+              });
+              await checkEndpoint("/examples/provider.json", (text) => {
+                const json = JSON.parse(text);
+                assert.ok(json.aikVersion, "examples/provider.json missing aikVersion");
+                assert.ok(Array.isArray(json.tools), "examples/provider.json missing tools array");
+              });
+              await checkEndpoint("/examples/consumer.json", (text) => {
+                const json = JSON.parse(text);
+                assert.ok(json.aikVersion, "examples/consumer.json missing aikVersion");
+                assert.ok(Array.isArray(json.tools), "examples/consumer.json missing tools array");
+              });
+              await checkEndpoint("/robots.txt", (text) => assert.ok(text.includes("User-agent"), "robots.txt invalid"));
+              await checkEndpoint("/sitemap.xml", (text) => assert.ok(text.includes("urlset") || text.includes("<url>"), "sitemap.xml invalid"));
+              console.log("All public production domain endpoints verified successfully!");
+            }
+
+            main().catch((err) => {
+              console.error("Public production domain verification failed:", err);
+              process.exit(1);
+            });
+          '

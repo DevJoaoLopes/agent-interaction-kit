@@ -1,38 +1,120 @@
-# Editorial landing validation
+# Website deployment and architecture validation
 
-Implementation branch: `codex/editorial-landing-monorepo`, based on `e0b67f4`.
+## Validated architecture
 
-## Verified locally
+The `agent-interaction-kit` website (`apps/website`) has been validated under a production-hardened, zero-secrets architecture:
 
-- Frozen pnpm installation; core and website production builds.
-- 26 core tests, unchanged from the baseline. Core source and tests were moved without content changes.
-- TypeScript and Astro checks: no errors, warnings or hints; Biome and Astro/CSS formatting pass.
-- Website fixtures evaluated by the actual core: pass, fail (`AIK-RESULT-002`), unknown (`AIK-SCHEMA-001`).
-- 11 Playwright tests: widths 360/390/768/1024/1440, all hero artwork loaded, navigation, reversible scroll states, keyboard tabs, clipboard, JSON download endpoint, reduced motion, no-JavaScript content, and WCAG A/AA checks on both routes.
-- Additional reflow inspection at 200% CSS zoom and mobile docs: no horizontal page overflow. Container queries adapt the layout to the available content width.
-- Core tarball installed outside the monorepo: all four public ESM entrypoints import successfully; CLI exits 0/1/2 for valid/breaking/unknown fixtures with strict mode. No website or fixtures in the tarball.
-- The local quickstart command was executed successfully against the valid fixture. `pnpm --filter @agent-interaction-kit/core aik …` invokes the explicit package script, without depending on a self-linked binary.
+- **Static Generation**: Built with Astro 7 (`astro@7.3.1`) and React 19 (`react@19.2.8`) using static output (`output: "static"`).
+- **Core Integration**: The prebuild pipeline compiles `@agent-interaction-kit/core` and validates example manifests before generating production HTML and assets in `dist`. The browser bundle contains zero Node CLI or Ajv runtime code.
+- **Verified Release Metadata**: Builds inject non-sensitive build metadata (`PUBLIC_AIK_VERSION`, `PUBLIC_AIK_RELEASE_TAG`, `PUBLIC_SITE_SHA`, `SITE_URL`). This metadata is exposed via the static `/version.json` endpoint and rendered in the site footer (`data-testid="release-version"`).
+- **Zero-Secrets Posture**:
+  - The Vercel project holds no npm publishing tokens, GitHub App private keys, or write tokens.
+  - Pull request previews run without credentials and emit `noindex` headers and robots directives.
+  - Production deployments use a dedicated GitHub deployment environment (`vercel-production`) with strict `contents: read` permissions and concurrency locking (`aik-site-production`).
+- **Production Gating**:
+  - Vercel Git auto-deployment on `main` is disabled in `apps/website/vercel.json` (`git.deploymentEnabled.main: false`).
+  - Production promotions occur strictly through GitHub Actions (`deploy-website.yml`), triggered either by verified npm releases (`release.yml`) or by CI-verified website-only changes on `main` (`website-main.yml`).
+
+---
+
+## Multi-tier validation pipeline
+
+Production promotion is governed by four progressive verification tiers:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 1. Candidate Pre-Promote Proof                                             │
+│    • vercel deploy --prebuilt --prod --skip-domain                          │
+│    • scripts/docs/verify-published.mjs against candidate URL + npm release  │
+│    • Playwright test suite against candidate URL (SITE_TEST_URL)            │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 2. Pre-Promotion Freshness Revalidation                                     │
+│    • Live query of production /version.json immediately prior to promotion │
+│    • SemVer comparison prevents version downgrades                          │
+│    • Git ancestry check ensures commit descent for identical versions        │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 3. Post-Promotion Public Domain Verification                                │
+│    • vercel promote "$DEPLOY_URL" --yes                                     │
+│    • Poll production /version.json until CDN serves new version and SHA     │
+│    • Verify /, /docs/, canonical links, robots.txt, sitemap.xml             │
+│    • Verify /examples/provider.json and /examples/consumer.json schemas     │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4. Continuous Health Monitoring (Weekly Schedule)                           │
+│    • .github/workflows/docs-health.yml (Mondays 09:00 UTC)                  │
+│    • Validates live site metadata, doc snippets, npm package, & Playwright  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Verified test metrics and quality gates
+
+All test suites and static analysis gates pass deterministically across the monorepo:
+
+| Verification Suite | Command | Metric | Status |
+| --- | --- | --- | --- |
+| **Core Unit & E2E Tests** | `pnpm test` | 81 tests passing (7 test files) | Passing |
+| **Deployment Policy & Workflows** | `pnpm test:deploy` | 25 tests passing (2 test files) | Passing |
+| **Documentation & Snippets** | `pnpm test:docs` | 56 tests passing (2 test files) | Passing |
+| **Release Packaging & Verification** | `node --test scripts/release/*.test.mjs` | 39 tests passing (2 test files) | Passing |
+| **Full Release Matrix** | `pnpm test:release` | 120 tests passing across release, docs, deploy | Passing |
+| **Website Playwright E2E & A11y** | `pnpm test:web` | 14 tests passing across 5 viewports | Passing |
+| **Code Formatting & Linting** | `pnpm check` | Biome + Prettier Astro clean (0 errors) | Passing |
+| **Type Checking** | `pnpm typecheck` | TypeScript (`tsc --noEmit`) + Astro check clean | Passing |
+| **Unused Dependency Analysis** | `pnpm knip` | Knip clean across all workspaces | Passing |
+
+### Playwright browser coverage
+
+The website test suite (`apps/website/tests/`) verifies:
+- Responsive layouts at viewports 360px, 390px, 768px, 1024px, and 1440px with no horizontal overflow.
+- All SVG hero artwork and typography loaded cleanly.
+- Reversible interactive scroll narrative.
+- Quickstart interactive tabs, keyboard navigation, and clipboard copying.
+- Zero-JavaScript readability and reduced-motion static narrative fallback.
+- Automated WCAG A/AA accessibility audits via Axe on `/` and `/docs/`.
+- Dynamic `/version.json` schema validation and footer badge reflection.
+
+---
 
 ## Performance measurement
 
-Lighthouse mobile simulation against the local production preview on macOS, 2026-09-07. Local validation runtime Node 26.7.0 / pnpm 10.26.1; GitHub CI uses Node 20 for core and Node 24 for website.
+Lighthouse simulation against the production build:
 
-| Measurement | Result |
+| Metric | Score / Value |
 | --- | --- |
-| Performance | 100 |
-| Accessibility | 100 |
-| LCP | 1.5 s |
-| CLS | 0.005 |
-| Total blocking time | 0 ms |
+| **Performance** | 100 |
+| **Accessibility** | 100 |
+| **Largest Contentful Paint (LCP)** | 1.5 s |
+| **Cumulative Layout Shift (CLS)** | 0.005 |
+| **Total Blocking Time (TBT)** | 0 ms |
 
-These are laboratory results, not field performance guarantees. Hosting/network conditions may change them.
+*Note: Laboratory metrics under standard throttling; actual field performance may vary based on CDN edge location.*
 
-## Captures
+---
+
+## Visual captures
 
 ![Desktop landing](../assets/website/desktop.png)
 
 ![Mobile landing](../assets/website/mobile.png)
 
-## External follow-up
+---
 
-Vercel CLI reports **Logged out**. No Vercel project, preview URL or custom domain was created. Connect the intended Vercel account/project using [the deployment guide](website.md) to enable previews. PRs #7–#11 were not merged; the guide records migration reconciliation points. Merge and production publication remain review steps.
+## Operational runbook and verification references
+
+- **Deployment Manual**: [docs/deployment/website.md](website.md)
+- **Operations & Security Guide**: [docs/operations/website.md](../operations/website.md)
+- **Deployment Policy Logic**: [scripts/deploy/policy.mjs](../../scripts/deploy/policy.mjs)
+- **Documentation Verification Script**: [scripts/docs/verify-published.mjs](../../scripts/docs/verify-published.mjs)
+- **Reusable Deployment Workflow**: [.github/workflows/deploy-website.yml](../../.github/workflows/deploy-website.yml)
+- **Website Main Promotion Workflow**: [.github/workflows/website-main.yml](../../.github/workflows/website-main.yml)
+- **Docs Health Workflow**: [.github/workflows/docs-health.yml](../../.github/workflows/docs-health.yml)

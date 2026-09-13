@@ -26,40 +26,36 @@ When a tool schema changes—such as renaming a return field, dropping a require
 
 ## ⚡ Quickstart
 
-This repository uses pnpm workspaces: `packages/core` contains the library, CLI and fixtures; `apps/website` contains the Editorial landing and quickstart. Use Node 24 and pnpm 10.26.1 for the whole repository. The core itself still targets Node 20.
+### 1. Install
+
+Install the core package in your project as a development dependency:
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm build:core
-pnpm test
-pnpm dev:web
+npm install --save-dev --save-exact @agent-interaction-kit/core@1.0.0-beta.1
 ```
 
-See [website deployment](docs/deployment/website.md) for Vercel setup and [the core reference](packages/core/README.md) for package details.
+### 2. Add Script and Check
 
-### 1. Build locally
+Add contract testing to your `package.json` scripts:
 
-```bash
-git clone https://github.com/DevJoaoLopes/agent-interaction-kit.git
-cd agent-interaction-kit
-pnpm install --frozen-lockfile
-pnpm build:core
+```json
+{
+  "scripts": {
+    "test:contracts": "aik check --provider aik.provider.json --consumer aik.consumer.json --strict"
+  }
+}
 ```
 
-### 2. Run Compatibility Check
-
-Run the locally installed `aik` binary:
+Run the check:
 
 ```bash
-pnpm --filter @agent-interaction-kit/core aik check --provider fixtures/valid/provider.json --consumer fixtures/valid/consumer.json --strict
+npm run test:contracts
 ```
 
-For an ad-hoc check without adding AIK to your project first, invoke the package directly:
+Or run directly using `npx`:
 
 ```bash
-npx @agent-interaction-kit/core check \
-  --provider ./backend/aik.provider.json \
-  --consumer ./frontend/aik.consumer.json
+npx --no-install aik check --provider aik.provider.json --consumer aik.consumer.json --strict
 ```
 
 Output:
@@ -68,6 +64,15 @@ Output:
   Producer Build: git-b101 | Consumer Build: git-c101
 
 Summary: 3 tools checked, 0 diagnostics.
+```
+
+### Ad-hoc Execution
+
+To check contracts without adding AIK to your project dependencies:
+
+```bash
+pnpm dlx @agent-interaction-kit/core@1.0.0-beta.1 check \
+  --provider aik.provider.json --consumer aik.consumer.json --strict
 ```
 
 ---
@@ -104,25 +109,40 @@ AIK decouples teams through two lightweight, version-controlled JSON manifests:
 
 ## 🚦 CI/CD Integration
 
-Add contract verification directly to your GitHub Actions pipeline:
+Add contract verification to your CI pipeline (e.g. GitHub Actions) with frozen dependency installation:
 
 ```yaml
+- name: Install dependencies
+  run: npm ci
+
+- name: Verify Agent Interaction Contracts
+  run: npm run test:contracts
+```
+
+Or run directly using the installed binary with `--strict`:
+
+```yaml
+- name: Install dependencies
+  run: npm ci
+
 - name: Verify Agent Interaction Contracts
   run: |
-    npx aik check \
+    npx --no-install aik check \
       --provider ./apps/backend/aik.provider.json \
       --consumer ./apps/frontend/aik.consumer.json \
       --format junit \
-      --output test-results/aik.xml
+      --output test-results/aik.xml \
+      --strict
 ```
 
 ### Exit Codes
 
 | Exit Code | Status | Meaning |
 | :---: | :--- | :--- |
-| **`0`** | `PASS` | All tools and schemas are fully compatible. |
+| **`0`** | `PASS` | All tools and schemas are fully compatible within supported checks. |
 | **`1`** | `FAIL` | Breaking contract change detected (CI build should fail). |
-| **`2`** | `ERROR` / `UNKNOWN` | Missing files, invalid JSON, or unanalyzable schema (when `--strict` is enabled). |
+| **`2`** | `ERROR` | Invalid input: missing manifest files, malformed JSON, or invalid arguments. |
+| **`2`** | `INCONCLUSIVE` | Schema contains unsupported constructs (e.g., `AIK-SCHEMA-001`) under `--strict`. Without `--strict`, exits 0. |
 
 ---
 
@@ -179,6 +199,23 @@ if (provider.ok && consumer.ok) {
 | **`AIK-RESULT-002`** | `error` | Required result property missing from provider return schema (covariance). |
 | **`AIK-RESULT-003`** | `error` | Required result property scalar type incompatible with consumer expectation (covariance). |
 | **`AIK-SCHEMA-001`** | `unknown` | Schema contains unsupported constructs outside the safe subset (e.g., `not`, `$ref`). |
+
+---
+
+## 🛠️ Contributing / Local Development
+
+For developing AIK itself, this repository uses pnpm workspaces (Node >= 20, pnpm >= 10.26.1):
+
+```bash
+git clone https://github.com/DevJoaoLopes/agent-interaction-kit.git
+cd agent-interaction-kit
+pnpm install --frozen-lockfile
+pnpm build:core
+pnpm test
+pnpm dev:web
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [website deployment](docs/deployment/website.md) for details.
 
 ---
 

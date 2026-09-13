@@ -4,6 +4,7 @@ import "@fontsource/inter/latin-500.css";
 import "@fontsource/inter/latin-600.css";
 import "@fontsource/source-serif-4/latin-400-italic.css";
 import "../styles/global.css";
+import { releaseInfo } from "../lib/release-info";
 interface Props {
   title?: string;
   description?: string;
@@ -50,8 +51,11 @@ const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site) : undefin
     </header>
     <main id="main"><slot /></main>
     <footer class="site-footer shell">
-      <a class="wordmark" href="/">[↔] aik</a><span>Small contracts. Better conversations.</span
-      ><nav aria-label="Footer">
+      <a class="wordmark" href="/">[↔] aik</a><span>Small contracts. Better conversations.</span>
+      <p data-testid="release-version" class="release-indicator">
+        {releaseInfo.experimental ? "Experimental beta" : "Version"}: {releaseInfo.version}
+      </p>
+      <nav aria-label="Footer">
         <a href="/docs/">Docs</a><a
           href="https://github.com/DevJoaoLopes/agent-interaction-kit/blob/main/LICENSE"
           >MIT license ↗</a

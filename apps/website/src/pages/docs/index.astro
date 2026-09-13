@@ -2,6 +2,10 @@
 import Quickstart from "../../components/landing/Quickstart";
 import { consumer, provider } from "../../data/examples";
 import Layout from "../../layouts/Layout.astro";
+import { releaseInfo } from "../../lib/release-info";
+
+const isUnreleased = releaseInfo.version === "unreleased";
+const displayVersion = isUnreleased ? "1.0.0-beta.1" : releaseInfo.version;
 ---
 
 <Layout
@@ -15,14 +19,29 @@ import Layout from "../../layouts/Layout.astro";
       Two JSON manifests describe the tool contract between your agent and your interface. AIK
       checks whether they agree.
     </p>
-    <h2>01 / Build AIK</h2><p>
-      Use Node.js 24 and pnpm 10.26.1 for this repository. The npm release is in preparation; build
-      the CLI locally today.
-    </p>
-    <Quickstart client:load />
-    <h2>02 / Describe both sides</h2><p>
-      Save these files in <code>packages/core/</code>. They use the same fixtures that are checked
-      against the real engine during the website build.
+    <h2>{isUnreleased ? "01 / Build AIK" : "01 / Install AIK"}</h2>
+    {
+      isUnreleased ? (
+        <p>
+          Use Node.js 24 and pnpm 10.26.1 for this repository. The npm release is in preparation;
+          build the CLI locally today.
+        </p>
+      ) : (
+        <p>
+          Install <code>@agent-interaction-kit/core</code> in your project with{" "}
+          <code data-doc-command="docs-install">
+            npm install --save-dev --save-exact @agent-interaction-kit/core@{releaseInfo.version}
+          </code>
+          .
+        </p>
+      )
+    }
+    <Quickstart client:load version={releaseInfo.version} />
+    <h2>02 / Describe both sides</h2>
+    <p>
+      Save two manifests in your project: <code>aik.provider.json</code> (what the agent provides) and
+      <code>aik.consumer.json</code> (what the UI expects). Below are two complete, minimal manifests
+      from the verified fixtures:
     </p>
     <div class="manifest-downloads">
       <a class="button secondary" href="/examples/provider.json" download="aik.provider.json"
@@ -39,41 +58,75 @@ import Layout from "../../layouts/Layout.astro";
       <summary>aik.consumer.json · what the UI expects</summary><pre
         class="code-block"><code>{JSON.stringify(consumer, null, 2)}</code></pre>
     </details>
-    <h2>03 / Check the contract</h2><p>From the repository root, run:</p><pre
-      class="code-block"><code>pnpm --filter @agent-interaction-kit/core aik check \
+    <p>
+      Downloading or saving example manifests proves your local setup and verifies that the CLI
+      runs. However, protecting your real application requires adapting and exporting schemas from
+      your actual backend agent tools and frontend UI components. You can use the optional <a
+        class="text-link"
+        href="https://github.com/DevJoaoLopes/agent-interaction-kit/blob/main/skills/generate-contracts/SKILL.md"
+        >generate-contracts skill</a
+      > to assist in extracting manifests from your codebase.
+    </p>
+    <h2>03 / Check the contract</h2>
+    <p>Run the check using the installed package binary:</p>
+    <pre
+      class="code-block"><code data-doc-command="docs-check">npx --no-install aik check \
   --provider aik.provider.json \
   --consumer aik.consumer.json --strict</code></pre>
+    <p>For ad-hoc execution without installing the package locally:</p>
+    <pre
+      class="code-block"><code data-doc-command="docs-dlx">{`pnpm dlx @agent-interaction-kit/core@${displayVersion} check \\\n  --provider aik.provider.json \\\n  --consumer aik.consumer.json --strict`}</code></pre>
     <p>
       Rename <code>total</code> to <code>amount</code> in the provider's return schema, including its
       required list. Run again: AIK reports <code>AIK-RESULT-002</code> and exits with code 1. Restore
       the field to pass.
     </p>
-    <h2>04 / Use it in CI</h2><p>
-      After checkout, pnpm setup and dependency installation, build and check your manifests:
-    </p><pre
-      class="code-block"><code>- run: pnpm build:core
-- run: |
-    pnpm --filter @agent-interaction-kit/core aik check \
-      --provider aik.provider.json \
-      --consumer aik.consumer.json --strict</code></pre>
+    <h2>04 / Use it in CI</h2>
+    <p>
+      Add a contract test script to your <code>package.json</code>:
+    </p>
+    <pre
+      class="code-block"><code data-doc-command="docs-script">{`{
+  "scripts": {
+    "test:contracts": "aik check --provider aik.provider.json --consumer aik.consumer.json --strict"
+  }
+}`}</code></pre>
+    <p>
+      In CI (e.g. GitHub Actions), perform a frozen dependency install and run your contract test:
+    </p>
+    <pre
+      class="code-block"><code data-doc-command="docs-ci">- name: Install dependencies
+  run: npm ci
+
+- name: Test contracts
+  run: npm run test:contracts</code></pre>
     <div class="table-scroll">
       <table>
-        <caption>Result and exit code with --strict</caption><thead
-          ><tr><th>Result</th><th>Exit</th><th>Meaning</th></tr></thead
-        ><tbody
-          ><tr><td>Pass</td><td>0</td><td>Compatible within the supported schema checks.</td></tr
-          ><tr><td>Fail</td><td>1</td><td>A breaking contract change was detected.</td></tr><tr
-            ><td>Unknown / error</td><td>2</td><td
-              >Unsupported schema, invalid input or missing files.</td
+        <caption>Result and exit code with --strict</caption><thead>
+          <tr><th>Result</th><th>Exit</th><th>Meaning</th></tr></thead
+        ><tbody>
+          <tr><td>Pass</td><td>0</td><td>Compatible within the supported schema checks.</td></tr><tr
+            ><td>Fail</td><td>1</td><td>A breaking contract change was detected.</td></tr
+          ><tr
+            ><td>Error</td><td>2</td><td
+              >Invalid input: missing manifest files, malformed JSON, or invalid arguments.</td
+            ></tr
+          ><tr
+            ><td>Inconclusive (with --strict)</td><td>2</td><td
+              >Schema contains unsupported constructs (e.g. <code>AIK-SCHEMA-001</code>). Without <code
+                >--strict</code
+              >, exits 0.</td
             ></tr
           ></tbody
         >
       </table>
     </div>
     <p>
-      <strong>Unknown is not a pass.</strong> Without <code>--strict</code>, an unknown report can
-      exit 0. Keep strict mode enabled in CI. For example, a return schema with <code>not</code> is inconclusive
-      and emits <code>AIK-SCHEMA-001</code>.
+      <strong>Inconclusive is not a pass.</strong> Without <code>--strict</code>, an inconclusive or
+      unknown report exits 0. Keep strict mode enabled in CI. For example, a return schema with <code
+        >not</code
+      > or <code>$ref</code> is inconclusive and emits <code>AIK-SCHEMA-001</code>, causing exit
+      code 2 when <code>--strict</code> is enabled.
     </p>
     <p>
       AIK compares the manifests you supply. It does not validate live traffic, automatically repair

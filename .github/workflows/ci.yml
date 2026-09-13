@@ -67,6 +67,7 @@ jobs:
       - run: pnpm build:web
       - run: pnpm --filter @agent-interaction-kit/website typecheck
       - run: pnpm --filter @agent-interaction-kit/website exec playwright install --with-deps chromium
+      - run: pnpm test:docs
       - run: pnpm test:web
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()

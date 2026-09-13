@@ -8,7 +8,9 @@
     "build:core": "pnpm --filter @agent-interaction-kit/core build",
     "build:web": "pnpm --filter @agent-interaction-kit/website build",
     "test": "pnpm --filter @agent-interaction-kit/core test",
-    "test:release": "node --test scripts/release/*.test.mjs",
+    "test:release": "node --test scripts/release/*.test.mjs scripts/docs/*.test.mjs scripts/deploy/*.test.mjs",
+    "test:docs": "node --test scripts/docs/*.test.mjs",
+    "test:deploy": "node --test scripts/deploy/*.test.mjs",
     "test:web": "pnpm --filter @agent-interaction-kit/website test",
     "typecheck": "pnpm --filter @agent-interaction-kit/core typecheck && pnpm --filter @agent-interaction-kit/website typecheck",
     "check": "biome check . && pnpm --filter @agent-interaction-kit/website format:check",
@@ -21,6 +23,8 @@
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "knip": "^6.34.0",
-    "release-please": "^17.11.2"
+    "release-please": "^17.11.2",
+    "vercel": "59.16.0",
+    "yaml": "^2.9.1"
   }
 }
