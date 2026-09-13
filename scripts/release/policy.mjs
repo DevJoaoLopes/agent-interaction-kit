@@ -10,3 +10,5 @@ export function validateTag(tag, version) {
   if (tag !== `v${version}`) throw new Error("Release tag does not match package version");
   return channel;
 }
+
+export { compareSemver, parseSemver } from "./publish-decision.mjs";
