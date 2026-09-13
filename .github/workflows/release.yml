@@ -203,14 +203,25 @@ jobs:
           echo "Running smoke test on $TARBALL_PATH for version $VERSION..."
           node scripts/release/smoke-package.mjs "$TARBALL_PATH" "$VERSION"
 
-      - name: Attach tarball to GitHub Release
+      - name: Attach or verify tarball in GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           TARBALL_PATH: ${{ steps.pack.outputs.tarball_path }}
           TARBALL_NAME: ${{ steps.pack.outputs.tarball_name }}
+          LOCAL_INTEGRITY: ${{ steps.pack.outputs.integrity }}
         run: |
           if gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' | grep -qx "$TARBALL_NAME"; then
-            echo "Tarball $TARBALL_NAME already present in release $RELEASE_TAG assets. Skipping upload."
+            echo "Tarball $TARBALL_NAME already present in release $RELEASE_TAG assets. Verifying integrity..."
+            TMP_ASSET_DIR=$(mktemp -d)
+            trap 'rm -rf "$TMP_ASSET_DIR"' EXIT
+            gh release download "$RELEASE_TAG" -p "$TARBALL_NAME" -D "$TMP_ASSET_DIR"
+            EXISTING_INTEGRITY=$(node scripts/release/publish-decision.mjs sri-hash "$TMP_ASSET_DIR/$TARBALL_NAME")
+            if [ "$EXISTING_INTEGRITY" != "$LOCAL_INTEGRITY" ]; then
+              echo "::error::Existing release asset $TARBALL_NAME integrity ($EXISTING_INTEGRITY) does not match local tarball ($LOCAL_INTEGRITY)!"
+              echo "Refusing to proceed with divergent build."
+              exit 1
+            fi
+            echo "Existing release asset verified: integrity matches ($LOCAL_INTEGRITY)."
           else
             gh release upload "$RELEASE_TAG" "$TARBALL_PATH" --clobber=false
           fi
