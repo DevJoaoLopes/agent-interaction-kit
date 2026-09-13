@@ -281,11 +281,17 @@ If GitHub Actions experiences an outage and an urgent security patch must be mer
    ```
 
 2. **Temporary Audit Bypass (Emergency Only)**:
-   Do **not** delete the ruleset. Instead, add the repository owner as a temporary bypass actor:
+   Do **not** delete the ruleset. Instead, add repository admin (`DevJoaoLopes`, `RepositoryRole` actor ID `5`) as a temporary bypass actor:
    ```bash
-   # Add bypass actor DevJoaoLopes (User) with bypass_mode "always"
-   # Make the emergency squash merge
-   # Immediately remove bypass actor
+   # Temporarily grant bypass permissions to Repository Admin (actor_id 5)
+   jq '.bypass_actors = [{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}]' .github/rulesets/main.json | \
+     gh api --method PUT repos/DevJoaoLopes/agent-interaction-kit/rulesets/23119836 --input -
+   ```
+
+   Confirm temporary bypass is active:
+   ```bash
+   gh api repos/DevJoaoLopes/agent-interaction-kit/rulesets/23119836 --jq '.bypass_actors'
+   # Expected output: [{"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}]
    ```
 
 3. **Immediate Restoration**:
@@ -325,3 +331,66 @@ gh api repos/DevJoaoLopes/agent-interaction-kit \
 gh api repos/DevJoaoLopes/agent-interaction-kit/private-vulnerability-reporting
 gh api repos/DevJoaoLopes/agent-interaction-kit/automated-security-fixes
 ```
+
+---
+
+## 9. Proof PR & Live Validation Record
+
+This section documents the live validation protocol and status check tracking for the governance rollout.
+
+### 9.1 Live Validation Protocol
+
+To verify that the branch protection ruleset and required checks operate as designed without deadlocking solo development, follow this sequence:
+
+1. **Branch & Pull Request Creation**:
+   Push feature branch `feat/oss-governance` to GitHub and open a pull request targeting `main`:
+   ```bash
+   gh pr create \
+     --base main \
+     --head feat/oss-governance \
+     --title "ci(governance): add rulesets and governance operations guide" \
+     --body-file .superpowers/sdd/2026-09-12-oss-governance/task-5-report.md
+   ```
+
+2. **Verify Merge Block on Pending Checks**:
+   Inspect the PR status immediately upon creation while CI workflows are queued or running:
+   ```bash
+   gh pr view <PR_NUMBER> --json mergeable,mergeStateStatus,statusCheckRollup
+   ```
+   **Expected Behavior**:
+   - `mergeStateStatus`: `BLOCKED`
+   - Merge button in GitHub UI is disabled with reason: *"Required status checks must pass before merging."*
+
+3. **Live Check Run Monitoring**:
+   Monitor the progress of required checks using GitHub CLI:
+   ```bash
+   gh pr checks <PR_NUMBER> --watch
+   ```
+   **Monitored Check Runs**:
+   - `CI required`: Must report `success` from GitHub Actions (`integration_id: 15368`).
+   - `PR title`: Must report `success` from GitHub Actions (`integration_id: 15368`).
+
+4. **Verify Solo Maintainer Merge Authorization**:
+   Once both checks report `success`:
+   ```bash
+   gh pr view <PR_NUMBER> --json mergeable,mergeStateStatus
+   ```
+   **Expected Behavior**:
+   - `mergeStateStatus`: `CLEAN`
+   - `mergeable`: `MERGEABLE`
+   - Maintainer `DevJoaoLopes` can merge via **Squash and merge** without requiring approvals from any other user (`required_approving_review_count: 0`).
+   - All conversation threads must be resolved (`required_review_thread_resolution: true`).
+
+5. **Direct Push & Deletion Invariance**:
+   Verify branch immutability:
+   - Direct push to `refs/heads/main` rejected by `main-protection` (`deletion`, `non_fast_forward`, `required_linear_history`, `pull_request`).
+   - Direct push/delete to `refs/tags/v*` rejected by `release-tags-protection` (`deletion`, `non_fast_forward`).
+
+---
+
+### 9.2 Validation Tracking Record
+
+| PR Identifier | Branch | Title | Status | Monitored Checks | Observed Ruleset Behavior |
+| --- | --- | --- | --- | --- | --- |
+| **PR A** | `feat/oss-governance` | `ci(governance): add rulesets and governance operations guide` | Pending remote branch push & PR creation | `CI required` (#15368), `PR title` (#15368) | Merge blocked until both checks succeed; solo self-merge allowed once green; direct pushes to `main` blocked. |
+
