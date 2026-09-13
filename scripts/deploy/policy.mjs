@@ -2,7 +2,44 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { compareSemver } from "../release/policy.mjs";
+import { compareSemver, parseSemver } from "../release/policy.mjs";
+
+/**
+ * Validates whether a version string is a parseable Semantic Version.
+ *
+ * @param {unknown} version
+ * @returns {boolean}
+ */
+export function isValidSemver(version) {
+  if (typeof version !== "string" || version.trim() === "") return false;
+  try {
+    parseSemver(version);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Checks whether a publication object is verified and structurally valid.
+ *
+ * Compatible with:
+ * - verified === true
+ * - verifiedAt timestamp (emitted by release workflows)
+ * Requires valid version parseable by semver and non-empty integrity hash.
+ *
+ * @param {unknown} pub
+ * @returns {boolean}
+ */
+export function isVerifiedPublication(pub) {
+  if (!pub || typeof pub !== "object") return false;
+  const isVerified = pub.verified === true || Boolean(pub.verifiedAt);
+  if (!isVerified) return false;
+  if (pub.verified === "publication-pending" || pub.verified === false) return false;
+  if (typeof pub.integrity !== "string" || pub.integrity.trim() === "") return false;
+  if (!isValidSemver(pub.version)) return false;
+  return true;
+}
 
 /**
  * Classifies whether git commit changes are isolated to the website scope.
@@ -26,15 +63,20 @@ export function classifyChange(changedFiles, options = {}) {
     };
   }
 
-  const normalizedFiles = changedFiles.map((f) =>
-    typeof f === "string" ? f.trim().replace(/^\.\//, "").replace(/\\/g, "/") : "",
-  );
+  const normalizedFiles = changedFiles
+    .map((f) => (typeof f === "string" ? f.trim().replace(/^\.\//, "").replace(/\\/g, "/") : ""))
+    .filter(Boolean);
+
+  if (normalizedFiles.length === 0) {
+    return {
+      websiteOnly: false,
+      reason: "No changed files provided",
+    };
+  }
 
   let hasLockfile = false;
 
   for (const file of normalizedFiles) {
-    if (!file) continue;
-
     if (file === "pnpm-lock.yaml") {
       hasLockfile = true;
       if (!options.lockfileImpactAnalyzed) {
@@ -67,13 +109,13 @@ export function classifyChange(changedFiles, options = {}) {
  * Evaluates verified publications and selects the best candidate using SemVer rules.
  *
  * Rules:
- * - Only verified publications (verified === true, non-empty integrity and version) are evaluated.
- * - Publication-pending and unverified entries are ignored.
- * - Prefers highest verified stable version (channel === "latest" or non-prerelease).
- * - In the absence of a stable version, selects the highest verified beta version (channel === "next").
+ * - Only verified publications (verified === true or verifiedAt, non-empty integrity and valid SemVer) are evaluated.
+ * - Malformed SemVer versions and unverified entries are safely ignored without crashing.
+ * - Prefers highest verified stable version (!version.includes("-beta.")).
+ * - In the absence of a stable version, selects the highest verified beta version (version.includes("-beta.")).
  * - Comparison is performed via semver comparison, not lexical sorting or date.
  *
- * @param {Array<{ version: string, channel: string, tag?: string, integrity?: string, verified?: boolean|string }>} publications
+ * @param {Array<{ version: string, channel?: string, tag?: string, integrity?: string, verified?: boolean|string, verifiedAt?: string }>} publications
  * @returns {object|null}
  */
 export function selectPublication(publications) {
@@ -81,30 +123,20 @@ export function selectPublication(publications) {
     return null;
   }
 
-  const verifiedPubs = publications.filter(
-    (pub) =>
-      pub &&
-      pub.verified === true &&
-      typeof pub.version === "string" &&
-      pub.version.trim() !== "" &&
-      typeof pub.integrity === "string" &&
-      pub.integrity.trim() !== "",
-  );
+  const verifiedPubs = publications.filter(isVerifiedPublication);
 
   if (verifiedPubs.length === 0) {
     return null;
   }
 
-  const stablePubs = verifiedPubs.filter(
-    (p) => p.channel === "latest" || !p.version.includes("-beta."),
-  );
+  const stablePubs = verifiedPubs.filter((p) => !p.version.includes("-beta."));
 
   if (stablePubs.length > 0) {
     stablePubs.sort((a, b) => compareSemver(b.version, a.version));
     return stablePubs[0];
   }
 
-  const betaPubs = verifiedPubs.filter((p) => p.channel === "next" || p.version.includes("-beta."));
+  const betaPubs = verifiedPubs.filter((p) => p.version.includes("-beta."));
 
   if (betaPubs.length > 0) {
     betaPubs.sort((a, b) => compareSemver(b.version, a.version));
@@ -176,13 +208,22 @@ export function evaluateDeployPromotion({
     };
   }
 
+  // Validate candidatePublication verification if provided
+  if (candidatePublication && !isVerifiedPublication(candidatePublication)) {
+    return {
+      status: "reject",
+      reason: "Candidate publication is not verified",
+    };
+  }
+
   const selectedPub = selectPublication(publications);
   const resolvedCandidatePub = candidatePublication || selectedPub;
 
   const currentSha = currentSite?.sha;
   const candidateSha = candidateSite?.sha;
   const currentVersion = currentSite?.version;
-  const candidateVersion = candidateSite?.version || resolvedCandidatePub?.version;
+  const candidateVersion =
+    candidatePublication?.version || candidateSite?.version || resolvedCandidatePub?.version;
 
   // Case 8: Retry/rerun of deploy with identical version and identical SHA
   if (
@@ -201,7 +242,43 @@ export function evaluateDeployPromotion({
     };
   }
 
-  // Case 7: Candidate site SHA is older than current promoted site
+  // Case 6 & Finding 2: Preserve stable recommendation over any beta release
+  // A beta candidate must NEVER downgrade or replace a promoted stable site,
+  // regardless of commit ancestry.
+  const isCurrentStable = Boolean(
+    currentSite &&
+      (currentSite.channel === "latest" || (currentVersion && !currentVersion.includes("-beta."))),
+  );
+
+  const candidateChannel =
+    candidateSite?.channel ||
+    resolvedCandidatePub?.channel ||
+    (candidateVersion?.includes("-beta.") ? "next" : "latest");
+
+  const isCandidateBeta = Boolean(
+    candidateChannel === "next" || candidateVersion?.includes("-beta."),
+  );
+
+  if (isCurrentStable && isCandidateBeta) {
+    return {
+      status: "keep_stable",
+      preservedVersion: currentVersion,
+      candidateVersion,
+      reason: `Stable version ${currentVersion} is already promoted; preserving stable recommendation instead of replacing with beta ${candidateVersion}`,
+    };
+  }
+
+  // Finding 1: Out-of-order release check - reject candidate version older than current promoted version
+  if (isValidSemver(candidateVersion) && isValidSemver(currentVersion)) {
+    if (compareSemver(candidateVersion, currentVersion) < 0) {
+      return {
+        status: "reject",
+        reason: "Candidate version is older than currently promoted version",
+      };
+    }
+  }
+
+  // Case 7 & Finding 1: Candidate site SHA is older than current promoted site
   let isCandidateOlder = false;
   if (currentSha && candidateSha && currentSha !== candidateSha) {
     if (typeof candidateSite?.isOlder === "boolean") {
@@ -214,6 +291,19 @@ export function evaluateDeployPromotion({
   }
 
   if (isCandidateOlder) {
+    // Only reconcile if candidate version is strictly newer than current version
+    if (
+      isValidSemver(candidateVersion) &&
+      isValidSemver(currentVersion) &&
+      compareSemver(candidateVersion, currentVersion) <= 0
+    ) {
+      return {
+        status: "reject",
+        reason:
+          "Candidate site SHA is older and candidate version is not newer than currently promoted version",
+      };
+    }
+
     return {
       status: "reconcile_current_site",
       currentSiteSha: currentSha,
@@ -257,28 +347,6 @@ export function evaluateDeployPromotion({
     return {
       status: "reject",
       reason: "No verified publication available",
-    };
-  }
-
-  const isCurrentStable = Boolean(
-    currentSite &&
-      (currentSite.channel === "latest" || (currentVersion && !currentVersion.includes("-beta."))),
-  );
-
-  const candidateChannel =
-    resolvedCandidatePub.channel ||
-    (resolvedCandidatePub.version.includes("-beta.") ? "next" : "latest");
-
-  const isCandidateBeta =
-    candidateChannel === "next" || resolvedCandidatePub.version.includes("-beta.");
-
-  // Case 6: Newer beta release when a stable version is already promoted
-  if (isCurrentStable && isCandidateBeta) {
-    return {
-      status: "keep_stable",
-      preservedVersion: currentVersion,
-      candidateVersion: resolvedCandidatePub.version,
-      reason: `Stable version ${currentVersion} is already promoted; preserving stable recommendation instead of replacing with beta ${resolvedCandidatePub.version}`,
     };
   }
 

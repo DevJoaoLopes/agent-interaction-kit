@@ -6,6 +6,8 @@ import {
   classifyChange,
   evaluateDeployPromotion,
   isGitAncestor,
+  isValidSemver,
+  isVerifiedPublication,
   selectPublication,
 } from "./policy.mjs";
 
@@ -18,6 +20,10 @@ test("classifyChange: allowlist identification and boundary enforcement", () => 
     reason: "No changed files provided",
   });
   assert.deepEqual(classifyChange(null), {
+    websiteOnly: false,
+    reason: "No changed files provided",
+  });
+  assert.deepEqual(classifyChange(["", "  ", "\t"]), {
     websiteOnly: false,
     reason: "No changed files provided",
   });
@@ -100,6 +106,37 @@ test("selectPublication: selects verified releases using semver comparison", () 
     },
   ];
   assert.equal(selectPublication(unverifiedList), null);
+
+  // Ignores malformed SemVer without crashing
+  const withMalformedSemver = [
+    {
+      version: "invalid-version",
+      channel: "latest",
+      tag: "invalid",
+      integrity: "sha512-inv",
+      verified: true,
+    },
+    {
+      version: "1.0.0",
+      channel: "latest",
+      tag: "v1.0.0",
+      integrity: "sha512-valid",
+      verified: true,
+    },
+  ];
+  assert.equal(selectPublication(withMalformedSemver)?.version, "1.0.0");
+
+  // Supports verifiedAt timestamp schema emitted by GitHub Actions
+  const withVerifiedAt = [
+    {
+      version: "1.0.5",
+      channel: "latest",
+      tag: "v1.0.5",
+      integrity: "sha512-valid5",
+      verifiedAt: "2026-09-13T12:00:00Z",
+    },
+  ];
+  assert.equal(selectPublication(withVerifiedAt)?.version, "1.0.5");
 
   // Prefers highest verified stable version over newer beta version
   const mixedPublications = [
@@ -455,6 +492,168 @@ test("evaluateDeployPromotion: Case 8 - Retry/rerun with identical version and S
   assert.equal(decision.version, "1.0.0");
   assert.equal(decision.sha, currentSite.sha);
   assert.match(decision.reason, /identical/i);
+});
+
+test("evaluateDeployPromotion: out-of-order release attempting to downgrade current version is rejected", () => {
+  const currentSite = {
+    version: "1.0.5",
+    channel: "latest",
+    sha: "2222222222222222222222222222222222222222",
+  };
+  const decision = evaluateDeployPromotion({
+    event: "release",
+    conclusion: "success",
+    branch: "main",
+    isFork: false,
+    currentSite,
+    candidatePublication: {
+      version: "1.0.4",
+      channel: "latest",
+      tag: "v1.0.4",
+      integrity: "sha512-v104",
+      verified: true,
+    },
+  });
+
+  assert.equal(decision.status, "reject");
+  assert.match(decision.reason, /Candidate version is older than currently promoted version/);
+});
+
+test("evaluateDeployPromotion: beta release with older commit SHA preserves existing stable site", () => {
+  const currentSite = {
+    version: "1.0.0",
+    channel: "latest",
+    sha: "2222222222222222222222222222222222222222",
+  };
+  const candidateSite = {
+    version: "1.1.0-beta.1",
+    channel: "next",
+    sha: "1111111111111111111111111111111111111111",
+    isOlder: true,
+  };
+
+  const decision = evaluateDeployPromotion({
+    event: "release",
+    conclusion: "success",
+    branch: "main",
+    isFork: false,
+    currentSite,
+    candidateSite,
+    isAncestor: () => true,
+    candidatePublication: {
+      version: "1.1.0-beta.1",
+      channel: "next",
+      tag: "v1.1.0-beta.1",
+      integrity: "sha512-b1",
+      verified: true,
+    },
+  });
+
+  assert.equal(decision.status, "keep_stable");
+  assert.equal(decision.preservedVersion, "1.0.0");
+  assert.match(decision.reason, /preserving stable recommendation/);
+});
+
+test("evaluateDeployPromotion: unverified candidatePublication is rejected", () => {
+  const decision = evaluateDeployPromotion({
+    event: "release",
+    conclusion: "success",
+    branch: "main",
+    isFork: false,
+    candidatePublication: {
+      version: "1.0.0",
+      channel: "latest",
+      tag: "v1.0.0",
+      integrity: "sha512-test",
+      verified: false,
+    },
+  });
+
+  assert.equal(decision.status, "reject");
+  assert.equal(decision.reason, "Candidate publication is not verified");
+});
+
+test("evaluateDeployPromotion: candidate site with older SHA and equal or older version is rejected", () => {
+  const currentSite = {
+    version: "1.0.0",
+    channel: "latest",
+    sha: "2222222222222222222222222222222222222222",
+  };
+  const candidateSite = {
+    version: "1.0.0",
+    channel: "latest",
+    sha: "1111111111111111111111111111111111111111",
+    isOlder: true,
+  };
+
+  const decision = evaluateDeployPromotion({
+    event: "release",
+    conclusion: "success",
+    branch: "main",
+    isFork: false,
+    currentSite,
+    candidateSite,
+    isAncestor: () => true,
+    candidatePublication: {
+      version: "1.0.0",
+      channel: "latest",
+      tag: "v1.0.0",
+      integrity: "sha512-v100",
+      verified: true,
+    },
+  });
+
+  assert.equal(decision.status, "reject");
+  assert.match(decision.reason, /Candidate site SHA is older and candidate version is not newer/);
+});
+
+test("schema and helper validators: isValidSemver and isVerifiedPublication", () => {
+  assert.equal(isValidSemver("1.0.0"), true);
+  assert.equal(isValidSemver("1.0.0-beta.1"), true);
+  assert.equal(isValidSemver("invalid"), false);
+  assert.equal(isValidSemver(null), false);
+
+  assert.equal(isVerifiedPublication(null), false);
+  assert.equal(
+    isVerifiedPublication({
+      version: "1.0.0",
+      integrity: "sha512-abc",
+      verified: true,
+    }),
+    true,
+  );
+  assert.equal(
+    isVerifiedPublication({
+      version: "1.0.0",
+      integrity: "sha512-abc",
+      verifiedAt: "2026-09-13T12:00:00Z",
+    }),
+    true,
+  );
+  assert.equal(
+    isVerifiedPublication({
+      version: "1.0.0",
+      integrity: "",
+      verified: true,
+    }),
+    false,
+  );
+  assert.equal(
+    isVerifiedPublication({
+      version: "1.0.0",
+      integrity: "sha512-abc",
+      verified: "publication-pending",
+    }),
+    false,
+  );
+  assert.equal(
+    isVerifiedPublication({
+      version: "not-semver",
+      integrity: "sha512-abc",
+      verified: true,
+    }),
+    false,
+  );
 });
 
 test("CLI execution outputs JSON for evaluate and classify commands", () => {
