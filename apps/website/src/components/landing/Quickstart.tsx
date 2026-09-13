@@ -1,10 +1,19 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
-const install =
+const localInstall =
   "git clone https://github.com/DevJoaoLopes/agent-interaction-kit.git\ncd agent-interaction-kit\npnpm install --frozen-lockfile\npnpm build:core";
-const check =
+const localCheck =
   "pnpm --filter @agent-interaction-kit/core aik check \\\n  --provider aik.provider.json \\\n  --consumer aik.consumer.json --strict";
-export default function Quickstart() {
+
+export default function Quickstart({ version }: { version: string }) {
+  const isUnreleased = version === "unreleased";
+  const install = isUnreleased
+    ? localInstall
+    : `npm install --save-dev --save-exact @agent-interaction-kit/core@${version}`;
+  const check = isUnreleased
+    ? localCheck
+    : "npx --no-install aik check \\\n  --provider aik.provider.json \\\n  --consumer aik.consumer.json --strict";
+
   const [tab, setTab] = useState("install");
   const [message, setMessage] = useState("");
   async function copy() {
@@ -25,7 +34,9 @@ export default function Quickstart() {
     >
       <div className="quickstart-controls">
         <TabsList aria-label="Quickstart commands">
-          <TabsTrigger value="install">1. Build locally</TabsTrigger>
+          <TabsTrigger value="install">
+            {isUnreleased ? "1. Build locally" : "1. Install"}
+          </TabsTrigger>
           <TabsTrigger value="check">2. Run check</TabsTrigger>
         </TabsList>
         <button className="copy-button" type="button" onClick={copy}>

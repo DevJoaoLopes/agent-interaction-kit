@@ -45,7 +45,7 @@ test("docs tabs support keyboard and command copying", async ({ page, context })
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/docs/");
   await expect(page.locator("astro-island")).not.toHaveAttribute("ssr", "");
-  await page.getByRole("tab", { name: "1. Build locally" }).focus();
+  await page.getByRole("tab", { name: /1\. (Install|Build locally)/ }).focus();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("tab", { name: "2. Run check" })).toHaveAttribute(
     "aria-selected",
@@ -73,7 +73,9 @@ test("without JavaScript the narrative and quickstart are readable", async ({ br
   await expect(page.locator(".static-story")).toBeVisible();
   await expect(page.locator(".static-story .story-scene")).toHaveCount(4);
   await page.goto("http://127.0.0.1:4322/docs/");
-  await expect(page.locator(".code-block").first()).toContainText("pnpm build:core");
+  await expect(page.locator(".code-block").first()).toContainText(
+    /pnpm build:core|@agent-interaction-kit\/core/,
+  );
   await expect(page.locator(".code-block").first()).toBeVisible();
   await context.close();
 });
