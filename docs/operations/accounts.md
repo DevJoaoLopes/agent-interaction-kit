@@ -133,6 +133,7 @@ The repository defines two GitHub deployment environments with restricted deploy
    If the scope does not exist, create the free public organization `agent-interaction-kit` at [`https://www.npmjs.com/org/create`](https://www.npmjs.com/org/create).
    *Note: If the scope name is unavailable, do not silently rename the package in code; coordinate scope selection with the maintainer.*
 3. **Bootstrap first release (`1.0.0-beta.1`)**:
+   - For the authoritative end-to-end bootstrap procedure using verified CI tarballs, publication guards, and reconciliation testing, refer to the [Release Operations and Recovery Runbook](./releases.md#2-maintainer-bootstrap-guide-first-release-100-beta1).
    - npm requires that a package exists before configuring Trusted Publishers.
    - Set or verify package version to `1.0.0-beta.1` (managed systematically in Plan 2):
      ```bash
