@@ -23,6 +23,8 @@
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "knip": "^6.34.0",
-    "release-please": "^17.11.2"
+    "release-please": "^17.11.2",
+    "vercel": "59.16.0",
+    "yaml": "^2.9.1"
   }
 }
