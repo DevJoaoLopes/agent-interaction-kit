@@ -20,6 +20,7 @@
     "@biomejs/biome": "1.9.4",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
-    "knip": "^6.34.0"
+    "knip": "^6.34.0",
+    "release-please": "^17.11.2"
   }
 }

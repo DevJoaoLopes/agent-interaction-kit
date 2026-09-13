@@ -4,6 +4,10 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { configSchema, manifestSchema } from "release-please";
+import { Version } from "release-please/build/src/version.js";
+import { DefaultVersioningStrategy } from "release-please/build/src/versioning-strategies/default.js";
+import { PrereleaseVersioningStrategy } from "release-please/build/src/versioning-strategies/prerelease.js";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -151,12 +155,100 @@ test("release-please-config.json parses cleanly and matches expected schema keys
     },
   ]);
 
-  // Verify bootstrap commit exists in git repository
-  const gitType = execFileSync("git", ["cat-file", "-t", config["bootstrap-sha"]], {
-    cwd: root,
-    encoding: "utf8",
-  }).trim();
-  assert.equal(gitType, "commit", "bootstrap-sha must point to a valid git commit");
+  // Verify bootstrap commit exists in git repository (skip in shallow CI clone)
+  const isShallow =
+    execFileSync("git", ["rev-parse", "--is-shallow-repository"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim() === "true";
+
+  if (!isShallow) {
+    const gitType = execFileSync("git", ["cat-file", "-t", config["bootstrap-sha"]], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+    assert.equal(gitType, "commit", "bootstrap-sha must point to a valid git commit");
+  }
+});
+
+test("release-please-config.json and manifest satisfy official release-please schemas", () => {
+  assert.equal(configSchema.type, "object");
+  assert.ok(configSchema.properties.packages);
+  assert.ok(configSchema.properties["bootstrap-sha"]);
+  assert.equal(manifestSchema.type, "object");
+});
+
+test("release-please PrereleaseVersioningStrategy produces expected beta bumps", async () => {
+  const strategy = new PrereleaseVersioningStrategy({ prerelease: true, prereleaseType: "beta" });
+  const v1 = Version.parse("1.0.0-beta.1");
+
+  const fixBump = await strategy.bump(v1, [{ type: "fix", notes: [], breaking: false, files: [] }]);
+  assert.equal(fixBump.toString(), "1.0.0-beta.2", "fix should bump beta prerelease number");
+
+  const featBump = await strategy.bump(v1, [
+    { type: "feat", notes: [], breaking: false, files: [] },
+  ]);
+  assert.equal(featBump.toString(), "1.0.0-beta.2", "feat should bump beta prerelease number");
+
+  const breakingBump = await strategy.bump(v1, [
+    {
+      type: "breaking",
+      notes: [{ title: "BREAKING CHANGE", text: "" }],
+      breaking: true,
+      files: [],
+    },
+  ]);
+  assert.equal(
+    breakingBump.toString(),
+    "1.0.0-beta.2",
+    "breaking change should bump beta prerelease number",
+  );
+
+  const v2 = Version.parse("1.0.0-beta.2");
+  const nextBump = await strategy.bump(v2, [
+    { type: "fix", notes: [], breaking: false, files: [] },
+  ]);
+  assert.equal(nextBump.toString(), "1.0.0-beta.3", "subsequent fix bumps to beta.3");
+});
+
+test("release-please DefaultVersioningStrategy produces expected stable bumps", async () => {
+  const strategy = new DefaultVersioningStrategy();
+  const v = Version.parse("1.0.0");
+
+  const fixBump = await strategy.bump(v, [{ type: "fix", notes: [], breaking: false, files: [] }]);
+  assert.equal(fixBump.toString(), "1.0.1", "fix should bump patch");
+
+  const featBump = await strategy.bump(v, [
+    { type: "feat", notes: [], breaking: false, files: [] },
+  ]);
+  assert.equal(featBump.toString(), "1.1.0", "feat should bump minor");
+
+  const breakingBump = await strategy.bump(v, [
+    {
+      type: "feat",
+      notes: [{ title: "BREAKING CHANGE", text: "breaking" }],
+      breaking: true,
+      files: [],
+    },
+  ]);
+  assert.equal(breakingBump.toString(), "2.0.0", "breaking should bump major");
+});
+
+test("release-please honors Release-As footer note", async () => {
+  const strategy = new PrereleaseVersioningStrategy({ prerelease: true, prereleaseType: "beta" });
+  const v0 = Version.parse("0.1.0");
+  const commit = {
+    type: "chore",
+    notes: [{ title: "RELEASE AS", text: "1.0.0-beta.1" }],
+    breaking: false,
+    files: [],
+  };
+  const releaseAsBump = await strategy.bump(v0, [commit]);
+  assert.equal(
+    releaseAsBump.toString(),
+    "1.0.0-beta.1",
+    "Release-As should override version to 1.0.0-beta.1",
+  );
 });
 
 test(".release-please-manifest.json parses cleanly and aligns with package.json", () => {
