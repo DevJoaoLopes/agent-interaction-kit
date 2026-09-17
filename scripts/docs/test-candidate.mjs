@@ -8,7 +8,8 @@ import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 export const candidateIdentity = {
-  expectedVersion: "0.1.0",
+  expectedVersion: JSON.parse(readFileSync(path.join(root, "packages/core/package.json"), "utf8"))
+    .version,
   expectedSiteSha: "abcd1234".repeat(5),
 };
 let candidateDir;
@@ -40,9 +41,9 @@ function buildSite() {
       encoding: "utf8",
       env: {
         ...process.env,
-        PUBLIC_AIK_VERSION: "0.1.0",
+        PUBLIC_AIK_VERSION: candidateIdentity.expectedVersion,
         PUBLIC_SITE_SHA: candidateIdentity.expectedSiteSha,
-        PUBLIC_AIK_RELEASE_TAG: "v0.1.0",
+        PUBLIC_AIK_RELEASE_TAG: `v${candidateIdentity.expectedVersion}`,
         VERCEL_ENV: "preview",
       },
     },

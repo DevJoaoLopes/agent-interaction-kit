@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
@@ -607,6 +610,41 @@ test("evaluateDeployPromotion: candidate site with older SHA and equal or older 
   assert.match(decision.reason, /Candidate site SHA is older and candidate version is not newer/);
 });
 
+test("evaluateDeployPromotion: handles currentSite with siteSha property from /version.json", () => {
+  const currentSite = {
+    version: "1.0.0",
+    channel: "latest",
+    siteSha: "3333333333333333333333333333333333333333",
+  };
+  const candidateSite = {
+    version: "1.0.0",
+    channel: "latest",
+    siteSha: "3333333333333333333333333333333333333333",
+  };
+
+  const decision = evaluateDeployPromotion({
+    event: "push",
+    conclusion: "success",
+    branch: "main",
+    isFork: false,
+    currentSite,
+    candidateSite,
+    publications: [
+      {
+        version: "1.0.0",
+        channel: "latest",
+        tag: "v1.0.0",
+        integrity: "sha512-v100",
+        verified: true,
+      },
+    ],
+  });
+
+  assert.equal(decision.status, "idempotent_redeploy");
+  assert.equal(decision.version, "1.0.0");
+  assert.equal(decision.sha, currentSite.siteSha);
+});
+
 test("schema and helper validators: isValidSemver and isVerifiedPublication", () => {
   assert.equal(isValidSemver("1.0.0"), true);
   assert.equal(isValidSemver("1.0.0-beta.1"), true);
@@ -720,19 +758,34 @@ test("CLI execution outputs JSON for evaluate and classify commands", () => {
   assert.equal(parsedSelect.version, "1.0.0");
 });
 
-test("isGitAncestor: correctly checks git ancestry", () => {
+test("isGitAncestor: correctly checks git ancestry", (t) => {
   assert.equal(isGitAncestor("", ""), false);
   assert.equal(isGitAncestor("abc", ""), false);
   assert.equal(isGitAncestor("abc", "abc"), true);
 
-  // Check real commits from repo history
-  const head = execFileSync("git", ["rev-parse", "HEAD"], {
-    encoding: "utf8",
-  }).trim();
-  const headParent = execFileSync("git", ["rev-parse", "HEAD~1"], {
-    encoding: "utf8",
-  }).trim();
+  const cwd = mkdtempSync(path.join(os.tmpdir(), "aik-ancestry-"));
+  t.after(() => rmSync(cwd, { recursive: true, force: true }));
+  const git = (...args) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+  git("init", "--quiet");
+  const commit = (message) => {
+    git(
+      "-c",
+      "user.name=AIK Test",
+      "-c",
+      "user.email=test@example.invalid",
+      "-c",
+      "commit.gpgsign=false",
+      "commit",
+      "--quiet",
+      "--allow-empty",
+      "-m",
+      message,
+    );
+    return git("rev-parse", "HEAD");
+  };
+  const parent = commit("parent");
+  const child = commit("child");
 
-  assert.equal(isGitAncestor(headParent, head), true);
-  assert.equal(isGitAncestor(head, headParent), false);
+  assert.equal(isGitAncestor(parent, child, { cwd }), true);
+  assert.equal(isGitAncestor(child, parent, { cwd }), false);
 });

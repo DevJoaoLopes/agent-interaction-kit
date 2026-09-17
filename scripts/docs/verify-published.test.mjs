@@ -16,6 +16,8 @@ test.after(cleanupCandidate);
 
 // Every integration scenario pins the independently configured test candidate.
 const verifyCandidate = (options) => verifyPublished({ ...candidateIdentity, ...options });
+const candidateVersion = candidateIdentity.expectedVersion;
+const candidatePackage = `@agent-interaction-kit/core@${candidateVersion}`;
 
 test("verifyPublished rejects missing siteUrl", async () => {
   await assert.rejects(
@@ -112,7 +114,7 @@ test("verifyPublished rejects version mismatch against expectedVersion", async (
           siteUrl: server.origin,
           expectedVersion: "9.9.9",
         }),
-      /Version mismatch: expected '9\.9\.9', but site reports '0\.1\.0'/,
+      { message: `Version mismatch: expected '9.9.9', but site reports '${candidateVersion}'` },
     );
   } finally {
     await server.close();
@@ -188,7 +190,6 @@ test("verifyPublished passes end-to-end against mock HTTP server with real packa
     const result = await verifyCandidate({
       siteUrl: server.origin,
       testTarball: tarball,
-      expectedVersion: "0.1.0",
       execFn: (cmd, args, opts) => {
         executions.push([cmd, ...args]);
         return spawnSync(cmd, args, opts);
@@ -196,7 +197,7 @@ test("verifyPublished passes end-to-end against mock HTTP server with real packa
     });
 
     assert.equal(result.status, "passed");
-    assert.equal(result.version, "0.1.0");
+    assert.equal(result.version, candidateVersion);
     assert.equal(result.siteSha, candidateIdentity.expectedSiteSha);
     assert.equal(result.results.versionEndpoint, "HTTP 200, valid schema");
     assert.equal(result.results.providerManifest, "HTTP 200, valid schema");
@@ -229,14 +230,14 @@ test("CLI execution of verify-published.mjs succeeds with valid target and fails
       "--test-tarball",
       tarball,
       "--expected-version",
-      "0.1.0",
+      candidateVersion,
       "--expected-site-sha",
       candidateIdentity.expectedSiteSha,
     ]);
     assert.equal(runSuccess.status, 0, runSuccess.stderr);
     const parsed = JSON.parse(runSuccess.stdout.trim());
     assert.equal(parsed.status, "passed");
-    assert.equal(parsed.version, "0.1.0");
+    assert.equal(parsed.version, candidateVersion);
 
     // 2. Failure execution without arguments
     const runFail = await runCli([]);
@@ -315,7 +316,7 @@ test("success text embedded in unexpected output is rejected", async () => {
 test("shared smoke helper still verifies package imports and all eight release scenarios", () => {
   const relativeTarball = path.relative(process.cwd(), getCoreTarball());
   assert.equal(path.isAbsolute(relativeTarball), false);
-  const result = smokePackage(relativeTarball, "0.1.0");
+  const result = smokePackage(relativeTarball, candidateVersion);
   assert.equal(result.imports, "passed");
   assert.equal(result.cli, "passed");
   assert.equal(result.scenarios, 8);
@@ -348,12 +349,7 @@ test("installed version must match pinned expectations and candidate metadata", 
         }),
       ),
     "/docs/": (req, res) =>
-      res.end(
-        sitePage("docs").replaceAll(
-          "@agent-interaction-kit/core@0.1.0",
-          "@agent-interaction-kit/core@9.9.9",
-        ),
-      ),
+      res.end(sitePage("docs").replaceAll(candidatePackage, "@agent-interaction-kit/core@9.9.9")),
   });
   try {
     await assert.rejects(
@@ -382,7 +378,7 @@ test("npm mode installs only the candidate's exact scoped version and fails on r
             attempted = true;
             assert.equal(cmd, "npm");
             assert.equal(options.shell, false);
-            assert.equal(args.at(-1), "@agent-interaction-kit/core@0.1.0");
+            assert.equal(args.at(-1), candidatePackage);
             assert.ok(args.includes("--save-exact"));
             return { status: 1, stderr: "npm E404 exact version unavailable", stdout: "" };
           },
@@ -402,8 +398,7 @@ for (const replacement of [
 ]) {
   test(`rejects unsupported registry/install snippet: ${replacement}`, async () => {
     const server = await startMockServer({
-      "/docs/": (req, res) =>
-        res.end(sitePage("docs").replaceAll("@agent-interaction-kit/core@0.1.0", replacement)),
+      "/docs/": (req, res) => res.end(sitePage("docs").replaceAll(candidatePackage, replacement)),
     });
     try {
       await assert.rejects(
@@ -459,7 +454,11 @@ for (const route of ["/version.json", "/examples/provider.json", "/examples/cons
   });
 }
 
-for (const metadata of [{ channel: "next" }, { experimental: true }, { releaseTag: "v9.9.9" }]) {
+for (const metadata of [
+  { channel: candidateVersion.includes("-") ? "latest" : "next" },
+  { experimental: !candidateVersion.includes("-") },
+  { releaseTag: "v9.9.9" },
+]) {
   test(`rejects inconsistent release metadata ${JSON.stringify(metadata)}`, async () => {
     const server = await startMockServer();
     try {

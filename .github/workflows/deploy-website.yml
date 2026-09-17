@@ -114,6 +114,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build core dependencies
+        run: pnpm build:core
+
       - name: Run candidate quality gates
         run: |
           pnpm check
@@ -233,6 +236,13 @@ jobs:
                 throw new Error(`Promotion blocked: candidate version (${candidateVersion}) would downgrade live site (${current.version})`);
               }
 
+              // Beta candidate must not replace an already promoted stable site
+              const isCurrentStable = current.channel === "latest" || !current.version.includes("-beta.");
+              const isCandidateBeta = candidateVersion.includes("-beta.");
+              if (isCurrentStable && isCandidateBeta) {
+                throw new Error(`Promotion blocked: live site is stable (${current.version}); subsequent beta (${candidateVersion}) cannot replace stable`);
+              }
+
               // If candidate version equals current version, verify Git ancestry
               if (semverDiff === 0 && current.siteSha && current.siteSha !== "local" && current.siteSha !== candidateSha) {
                 try {
@@ -240,6 +250,16 @@ jobs:
                   console.log(`Ancestry confirmed: live site SHA (${current.siteSha}) is an ancestor of candidate (${candidateSha})`);
                 } catch {
                   throw new Error(`Promotion blocked: candidate SHA (${candidateSha}) is not a descendant of live site SHA (${current.siteSha}) for same version`);
+                }
+              }
+
+              // Candidate site commit cannot be older than live site commit
+              if (current.siteSha && current.siteSha !== "local" && current.siteSha !== candidateSha) {
+                try {
+                  execFileSync("git", ["merge-base", "--is-ancestor", candidateSha, current.siteSha]);
+                  throw new Error(`Promotion blocked: candidate site SHA (${candidateSha}) is an ancestor of live site SHA (${current.siteSha})`);
+                } catch (e) {
+                  if (e.message.startsWith("Promotion blocked")) throw e;
                 }
               }
             }
@@ -315,13 +335,13 @@ jobs:
               });
               await checkEndpoint("/examples/provider.json", (text) => {
                 const json = JSON.parse(text);
-                assert.ok(json.aikVersion, "examples/provider.json missing aikVersion");
+                assert.ok(json.schemaVersion || json.aikVersion, "examples/provider.json missing schemaVersion");
                 assert.ok(Array.isArray(json.tools), "examples/provider.json missing tools array");
               });
               await checkEndpoint("/examples/consumer.json", (text) => {
                 const json = JSON.parse(text);
-                assert.ok(json.aikVersion, "examples/consumer.json missing aikVersion");
-                assert.ok(Array.isArray(json.tools), "examples/consumer.json missing tools array");
+                assert.ok(json.schemaVersion || json.aikVersion, "examples/consumer.json missing schemaVersion");
+                assert.ok(Array.isArray(json.requires), "examples/consumer.json missing requires array");
               });
               await checkEndpoint("/robots.txt", (text) => assert.ok(text.includes("User-agent"), "robots.txt invalid"));
               await checkEndpoint("/sitemap.xml", (text) => assert.ok(text.includes("urlset") || text.includes("<url>"), "sitemap.xml invalid"));

@@ -219,8 +219,8 @@ export function evaluateDeployPromotion({
   const selectedPub = selectPublication(publications);
   const resolvedCandidatePub = candidatePublication || selectedPub;
 
-  const currentSha = currentSite?.sha;
-  const candidateSha = candidateSite?.sha;
+  const currentSha = currentSite?.siteSha || currentSite?.sha;
+  const candidateSha = candidateSite?.siteSha || candidateSite?.sha;
   const currentVersion = currentSite?.version;
   const candidateVersion =
     candidatePublication?.version || candidateSite?.version || resolvedCandidatePub?.version;

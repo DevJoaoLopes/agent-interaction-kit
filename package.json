@@ -8,7 +8,7 @@
     "build:core": "pnpm --filter @agent-interaction-kit/core build",
     "build:web": "pnpm --filter @agent-interaction-kit/website build",
     "test": "pnpm --filter @agent-interaction-kit/core test",
-    "test:release": "node --test scripts/release/*.test.mjs scripts/docs/*.test.mjs scripts/deploy/*.test.mjs",
+    "test:release": "node --test scripts/release/*.test.mjs",
     "test:docs": "node --test scripts/docs/*.test.mjs",
     "test:deploy": "node --test scripts/deploy/*.test.mjs",
     "test:web": "pnpm --filter @agent-interaction-kit/website test",

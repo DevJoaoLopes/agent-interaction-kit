@@ -267,3 +267,28 @@ test("ci.yml: website job runs pnpm test:docs to validate documentation snippets
   const hasTestDocs = steps.some((step) => step.run === "pnpm test:docs");
   assert.ok(hasTestDocs, "Website job must include step running 'pnpm test:docs'");
 });
+
+test("ci.yml: isolates release packaging from docs builds and gates docs/deploy on Node 24", () => {
+  const pkg = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
+  assert.equal(pkg.scripts["test:release"], "node --test scripts/release/*.test.mjs");
+  assert.equal(pkg.scripts["test:docs"], "node --test scripts/docs/*.test.mjs");
+  assert.equal(pkg.scripts["test:deploy"], "node --test scripts/deploy/*.test.mjs");
+  const { jobs } = YAML.parse(readFileSync(ciWorkflowPath, "utf8"));
+  assert.deepEqual(jobs["core-matrix"].strategy.matrix["node-version"], ["20.x", "22.x", "24.x"]);
+  assert.deepEqual(jobs["package-smoke"].strategy.matrix["node-version"], ["20.x", "24.x"]);
+  for (const [jobName, script, result] of [
+    ["website", "test:docs", "WEBSITE"],
+    ["deploy-tests", "test:deploy", "DEPLOY"],
+  ]) {
+    const job = jobs[jobName];
+    assert.ok(job, `Missing ${jobName} job`);
+    assert.equal(
+      job.steps.find((step) => step.uses?.startsWith("actions/setup-node@")).with["node-version"],
+      24,
+    );
+    assert.ok(job.steps.some((step) => step.run === `pnpm ${script}`));
+    assert.ok(jobs.required.needs.includes(jobName));
+    assert.equal(jobs.required.steps[0].env[result], `\${{ needs.${jobName}.result }}`);
+    assert.ok(jobs.required.steps[0].run.includes(`test "$${result}" = success`));
+  }
+});
