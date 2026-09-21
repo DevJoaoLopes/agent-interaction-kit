@@ -34,8 +34,8 @@
     "@playwright/test": "^1.55.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "prettier": "^3.6.0",
-    "prettier-plugin-astro": "^0.14.0",
-    "typescript": "^5.9.3"
+    "prettier": "^3.9.8",
+    "prettier-plugin-astro": "^1.0.1",
+    "typescript": "^7.0.2"
   }
 }
