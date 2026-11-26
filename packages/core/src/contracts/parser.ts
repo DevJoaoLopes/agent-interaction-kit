@@ -14,6 +14,46 @@ function formatValidationError(subject: string, error: ErrorObject): string {
   return `${subject}: Validation error at ${location}: ${error.message}`;
 }
 
+function formatCustomError(subject: string, message: string): string {
+  return `${subject}: ${message}`;
+}
+
+function collectProviderToolErrors(parsed: object): string[] {
+  const tools = (parsed as { tools?: unknown }).tools;
+  if (!Array.isArray(tools)) {
+    return [];
+  }
+  const errors: string[] = [];
+  const seen = new Set<string>();
+  for (const [index, tool] of tools.entries()) {
+    if (!tool || typeof tool !== "object") {
+      continue;
+    }
+    const record = tool as { name?: unknown; parameters?: unknown };
+    if (typeof record.name === "string") {
+      if (seen.has(record.name)) {
+        errors.push(
+          formatCustomError("Provider manifest", `Duplicate tool name "${record.name}".`),
+        );
+      }
+      seen.add(record.name);
+    }
+    const parameters = record.parameters;
+    if (parameters && typeof parameters === "object") {
+      const type = (parameters as { type?: unknown }).type;
+      if (type !== undefined && type !== "object") {
+        errors.push(
+          formatCustomError(
+            "Provider manifest",
+            `Validation error at /tools/${index}/parameters/type: must be equal to "object"`,
+          ),
+        );
+      }
+    }
+  }
+  return errors;
+}
+
 export function parseProviderManifest(input: string | object): Result<ProviderManifest> {
   let parsed: unknown;
   try {
@@ -23,13 +63,19 @@ export function parseProviderManifest(input: string | object): Result<ProviderMa
   }
 
   const valid = validateProvider(parsed);
+  const errors: string[] = [];
   if (!valid) {
-    return {
-      ok: false,
-      errors: (validateProvider.errors || []).map((error: ErrorObject) =>
+    errors.push(
+      ...(validateProvider.errors || []).map((error: ErrorObject) =>
         formatValidationError("Provider manifest", error),
       ),
-    };
+    );
+  }
+  if (parsed && typeof parsed === "object") {
+    errors.push(...collectProviderToolErrors(parsed));
+  }
+  if (errors.length > 0) {
+    return { ok: false, errors };
   }
 
   return { ok: true, data: parsed as ProviderManifest };
