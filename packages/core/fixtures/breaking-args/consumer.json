@@ -15,9 +15,10 @@
       "expectedParameters": {
         "type": "object",
         "properties": {
-          "query": { "type": "string" }
+          "query": { "type": "string" },
+          "tenantId": { "type": "string" }
         },
-        "required": ["query"]
+        "required": ["query", "tenantId"]
       }
     }
   ]
