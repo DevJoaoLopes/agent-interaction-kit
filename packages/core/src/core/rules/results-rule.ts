@@ -1,6 +1,6 @@
 import type { ToolDescriptor, ToolReturnDescriptor } from "../../contracts/types.js";
 import type { Diagnostic } from "../diagnostics.js";
-import { schemaTypesEqual } from "../schema-types.js";
+import { schemaHasType, schemaTypesEqual } from "../schema-types.js";
 import { findUnsupportedConstruct } from "./schema-safety.js";
 
 const SCALAR_TYPES = new Set(["string", "number", "integer", "boolean", "null"]);
@@ -60,7 +60,7 @@ export function checkResults(
   }
 
   // Required properties check for object returns
-  if (cSchema.type === "object" && pSchema.type === "object") {
+  if (schemaHasType(cSchema.type, "object") && schemaHasType(pSchema.type, "object")) {
     const cRequired = (cSchema.required as string[]) || [];
     const pProps = (pSchema.properties as Record<string, unknown>) || {};
     const cProps = (cSchema.properties as Record<string, Record<string, unknown>>) || {};
@@ -101,10 +101,10 @@ export function checkResults(
   }
 
   // Required properties for items in array returns
-  if (cSchema.type === "array" && pSchema.type === "array") {
+  if (schemaHasType(cSchema.type, "array") && schemaHasType(pSchema.type, "array")) {
     const cItems = (cSchema.items as Record<string, unknown>) || {};
     const pItems = (pSchema.items as Record<string, unknown>) || {};
-    if (cItems.type === "object" && pItems.type === "object") {
+    if (schemaHasType(cItems.type, "object") && schemaHasType(pItems.type, "object")) {
       const cItemRequired = (cItems.required as string[]) || [];
       const pItemProps = (pItems.properties as Record<string, unknown>) || {};
       for (const reqProp of cItemRequired) {

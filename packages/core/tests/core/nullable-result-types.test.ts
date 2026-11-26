@@ -64,4 +64,59 @@ describe("nullable result types", () => {
     expect(diag).toBeDefined();
     expect(diag?.path).toBe("/returns/schema/type");
   });
+
+  it("still checks required object fields when both sides use a nullable type array", () => {
+    const report = evaluateCompatibility(
+      provider({ type: ["object", "null"], properties: {} }),
+      consumer({
+        type: ["object", "null"],
+        properties: { temperature: { type: "number" } },
+        required: ["temperature"],
+      }),
+    );
+    expect(report.status).toBe("fail");
+    const diag = report.diagnostics.find((item) => item.code === "AIK-RESULT-002");
+    expect(diag).toBeDefined();
+    expect(diag?.path).toBe("/returns/schema/properties/temperature");
+  });
+
+  it('still checks scalar field types when both sides use type: ["object"]', () => {
+    const report = evaluateCompatibility(
+      provider({
+        type: ["object"],
+        properties: { temperature: { type: "string" } },
+        required: ["temperature"],
+      }),
+      consumer({
+        type: ["object"],
+        properties: { temperature: { type: "number" } },
+        required: ["temperature"],
+      }),
+    );
+    expect(report.status).toBe("fail");
+    const diag = report.diagnostics.find((item) => item.code === "AIK-RESULT-003");
+    expect(diag).toBeDefined();
+    expect(diag?.path).toBe("/returns/schema/properties/temperature/type");
+  });
+
+  it("still checks required item fields when both sides use a nullable array type", () => {
+    const report = evaluateCompatibility(
+      provider({
+        type: ["array", "null"],
+        items: { type: "object", properties: {} },
+      }),
+      consumer({
+        type: ["array", "null"],
+        items: {
+          type: "object",
+          properties: { id: { type: "string" } },
+          required: ["id"],
+        },
+      }),
+    );
+    expect(report.status).toBe("fail");
+    const diag = report.diagnostics.find((item) => item.code === "AIK-RESULT-002");
+    expect(diag).toBeDefined();
+    expect(diag?.path).toBe("/returns/schema/items/properties/id");
+  });
 });

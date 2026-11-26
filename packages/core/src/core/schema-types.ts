@@ -28,3 +28,8 @@ export function schemaTypesEqual(left: unknown, right: unknown): boolean {
   }
   return true;
 }
+
+export function schemaHasType(type: unknown, wanted: string): boolean {
+  const types = normalizeSchemaType(type);
+  return !!types && types.has(wanted);
+}
