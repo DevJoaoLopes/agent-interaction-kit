@@ -40,20 +40,45 @@ export function checkArguments(
   const receptorSide = isServerExecution ? "provider" : "consumer";
 
   // 1. Mandatory Arguments (AIK-INPUT-001)
-  // Callee/receptor required parameters must be declared or guaranteed by caller/emitter.
-  const receptorRequired = receptorParams.required || [];
-  const emitterProperties = Object.keys(emitterParams.properties || {});
-  const emitterRequired = emitterParams.required || [];
+  // Backend tools: the frontend is a reader of the tool arguments. Every
+  // argument the UI reads must be required on the provider (covariance).
+  // Frontend tools keep contravariance: the backend caller must declare
+  // every argument the frontend handler requires.
+  if (isServerExecution) {
+    const readerRequired = consumerExpectedParams.required || [];
+    const producerRequired = new Set(providerTool.parameters.required || []);
+    const producerProperties = providerTool.parameters.properties || {};
+    for (const reqField of readerRequired) {
+      const declared = reqField in producerProperties;
+      const guaranteed = producerRequired.has(reqField);
+      if (!guaranteed) {
+        const detail = declared
+          ? "but the provider declares it as optional"
+          : "which the provider does not declare";
+        diagnostics.push({
+          code: "AIK-INPUT-001",
+          severity: "error",
+          toolName,
+          path: `/parameters/required/${reqField}`,
+          message: `Tool "${toolName}": consumer reads mandatory argument "${reqField}", ${detail}.`,
+        });
+      }
+    }
+  } else {
+    const receptorRequired = receptorParams.required || [];
+    const emitterProperties = Object.keys(emitterParams.properties || {});
+    const emitterRequired = emitterParams.required || [];
 
-  for (const reqField of receptorRequired) {
-    if (!emitterProperties.includes(reqField) && !emitterRequired.includes(reqField)) {
-      diagnostics.push({
-        code: "AIK-INPUT-001",
-        severity: "error",
-        toolName,
-        path: `/parameters/required/${reqField}`,
-        message: `Tool "${toolName}": ${receptorSide} requires mandatory argument "${reqField}", which ${emitterSide} does not declare.`,
-      });
+    for (const reqField of receptorRequired) {
+      if (!emitterProperties.includes(reqField) && !emitterRequired.includes(reqField)) {
+        diagnostics.push({
+          code: "AIK-INPUT-001",
+          severity: "error",
+          toolName,
+          path: `/parameters/required/${reqField}`,
+          message: `Tool "${toolName}": ${receptorSide} requires mandatory argument "${reqField}", which ${emitterSide} does not declare.`,
+        });
+      }
     }
   }
 
