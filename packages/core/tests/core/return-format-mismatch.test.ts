@@ -51,4 +51,41 @@ describe("return format mismatch", () => {
     expect(report.status).toBe("pass");
     expect(report.diagnostics).toEqual([]);
   });
+
+  it("still reports AIK-RESULT-004 when a format mismatch is paired with an unsupported $ref schema", () => {
+    const provider = {
+      schemaVersion: "1.0.0",
+      producer: { name: "backend", version: "1.0.0", buildId: "b1" },
+      protocolProfile: "ag-ui@0.1",
+      contextProfile: "default",
+      tools: [
+        {
+          name: "summarize",
+          executionSide: "backend" as const,
+          parameters: { type: "object" as const, properties: {} },
+          returns: { format: "text" as const, schema: { $ref: "#/$defs/result" } },
+        },
+      ],
+    };
+    const consumer = {
+      schemaVersion: "1.0.0",
+      consumer: { name: "frontend", version: "1.0.0", buildId: "c1" },
+      protocolProfile: "ag-ui@0.1",
+      contextProfile: "default",
+      requires: [
+        {
+          toolName: "summarize",
+          executionSide: "backend" as const,
+          expectedReturns: { format: "json" as const, schema: { $ref: "#/$defs/result" } },
+        },
+      ],
+    };
+    const report = evaluateCompatibility(provider, consumer);
+    expect(report.status).toBe("fail");
+    const formatDiag = report.diagnostics.find((item) => item.code === "AIK-RESULT-004");
+    expect(formatDiag).toBeDefined();
+    expect(formatDiag?.expected).toBe("json");
+    expect(formatDiag?.actual).toBe("text");
+    expect(report.diagnostics.some((item) => item.code === "AIK-SCHEMA-001")).toBe(true);
+  });
 });

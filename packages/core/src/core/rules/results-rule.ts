@@ -16,17 +16,6 @@ export function checkResults(
   const consumerUnsupportedPath = findUnsupportedConstruct(consumerExpectedReturns?.schema);
   const unsupportedPath = providerUnsupportedPath ?? consumerUnsupportedPath;
 
-  if (unsupportedPath) {
-    diagnostics.push({
-      code: "AIK-SCHEMA-001",
-      severity: "unknown",
-      toolName,
-      path: `/returns/schema${unsupportedPath}`,
-      message: `Tool "${toolName}" returns schema contains unsupported construct at "${unsupportedPath}".`,
-    });
-    return diagnostics;
-  }
-
   if (
     consumerExpectedReturns?.format &&
     providerReturns?.format &&
@@ -41,6 +30,17 @@ export function checkResults(
       expected: consumerExpectedReturns.format,
       actual: providerReturns.format,
     });
+  }
+
+  if (unsupportedPath) {
+    diagnostics.push({
+      code: "AIK-SCHEMA-001",
+      severity: "unknown",
+      toolName,
+      path: `/returns/schema${unsupportedPath}`,
+      message: `Tool "${toolName}" returns schema contains unsupported construct at "${unsupportedPath}".`,
+    });
+    return diagnostics;
   }
 
   if (!consumerExpectedReturns || !consumerExpectedReturns.schema) {
