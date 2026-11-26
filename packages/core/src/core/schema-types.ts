@@ -35,7 +35,7 @@ export function schemaHasType(type: unknown, wanted: string): boolean {
 }
 
 function jsonValuesEqual(left: unknown, right: unknown): boolean {
-  if (Object.is(left, right)) {
+  if (left === right) {
     return true;
   }
   if (Array.isArray(left) || Array.isArray(right)) {

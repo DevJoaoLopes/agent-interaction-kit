@@ -161,3 +161,38 @@ describe("const, $schema and draft 2020-12 annotations", () => {
     expect(report.diagnostics).toEqual([]);
   });
 });
+
+describe("const numeric equality", () => {
+  it("treats positive and negative zero as the same JSON number", () => {
+    const withConst = (value: unknown) => ({
+      type: "object",
+      properties: { level: { type: "number", const: value } },
+      required: ["level"],
+    });
+    const { provider, consumer } = pairWithResultSchema(withConst(0), withConst(-0));
+    expect(evaluateCompatibility(provider, consumer).diagnostics).toEqual([]);
+  });
+
+  it("treats zero nested in an object or array const as equal", () => {
+    const withConst = (value: unknown) => ({
+      type: "object",
+      properties: { point: { type: "object", const: value } },
+      required: ["point"],
+    });
+    const { provider, consumer } = pairWithResultSchema(
+      withConst({ x: [0, 1] }),
+      withConst({ x: [-0, 1] }),
+    );
+    expect(evaluateCompatibility(provider, consumer).diagnostics).toEqual([]);
+  });
+
+  it("still distinguishes different numbers", () => {
+    const withConst = (value: unknown) => ({
+      type: "object",
+      properties: { level: { type: "number", const: value } },
+      required: ["level"],
+    });
+    const { provider, consumer } = pairWithResultSchema(withConst(0), withConst(1));
+    expect(evaluateCompatibility(provider, consumer).status).toBe("fail");
+  });
+});
