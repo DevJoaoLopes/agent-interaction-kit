@@ -196,6 +196,7 @@ if (provider.ok && consumer.ok) {
 | **`AIK-RESULT-001`** | `error` | Result root type mismatch or missing structured return schema (covariance). |
 | **`AIK-RESULT-002`** | `error` | Required result property missing from provider return schema (covariance). |
 | **`AIK-RESULT-003`** | `error` | Required result property scalar type incompatible with consumer expectation (covariance). |
+| **`AIK-RESULT-004`** | `error` | Result format mismatch (e.g. json vs text). |
 | **`AIK-SCHEMA-001`** | `unknown` | Schema contains unsupported constructs outside the safe subset (e.g., `not`, `$ref`). |
 
 ---
