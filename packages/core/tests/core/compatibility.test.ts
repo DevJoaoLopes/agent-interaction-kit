@@ -205,7 +205,7 @@ describe("Compatibility Engine", () => {
     expect(diag?.toolName).toBe("searchDocuments");
   });
 
-  it("fails with AIK-INPUT-001 when provider adds a new mandatory argument", () => {
+  it("passes when a backend provider adds a mandatory argument the UI does not read", () => {
     const providerWithMandatoryArg: ProviderManifest = {
       ...baseProvider,
       tools: [
@@ -223,8 +223,8 @@ describe("Compatibility Engine", () => {
       ],
     };
     const report = evaluateCompatibility(providerWithMandatoryArg, baseConsumer);
-    expect(report.status).toBe("fail");
-    expect(report.diagnostics.some((d) => d.code === "AIK-INPUT-001")).toBe(true);
+    expect(report.status).toBe("pass");
+    expect(report.diagnostics).toEqual([]);
   });
 
   it("returns status unknown with AIK-SCHEMA-001 when schema contains unsupported construct", () => {

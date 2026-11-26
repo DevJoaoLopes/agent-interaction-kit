@@ -153,7 +153,8 @@ const displayVersion = isUnreleased ? "1.0.0-beta.1" : releaseInfo.version;
             ></tr
           ><tr
             ><td><code>AIK-INPUT-001</code></td><td>Error</td><td
-              >Mandatory parameter requirement violation (contravariance).</td
+              >Mandatory parameter requirement violation (covariance for backend tools, where the UI
+              reads arguments; contravariance for frontend tools).</td
             ></tr
           ><tr
             ><td><code>AIK-INPUT-002</code></td><td>Error</td><td
@@ -170,6 +171,10 @@ const displayVersion = isUnreleased ? "1.0.0-beta.1" : releaseInfo.version;
           ><tr
             ><td><code>AIK-RESULT-003</code></td><td>Error</td><td
               >Required result field scalar type is incompatible.</td
+            ></tr
+          ><tr
+            ><td><code>AIK-RESULT-004</code></td><td>Error</td><td
+              >Result format mismatch (e.g. json vs text).</td
             ></tr
           ><tr
             ><td><code>AIK-SCHEMA-001</code></td><td>Unknown</td><td
