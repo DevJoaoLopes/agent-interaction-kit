@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -85,13 +85,13 @@ test("deploy-website.yml: pins action SHAs with human-readable version comments"
   const raw = readFileSync(deployWorkflowPath, "utf8");
 
   // Checkout pinned to exact commit SHA with comment
-  assert.match(raw, /actions\/checkout@11bd71901bbe5b1630ceea73d27597364c9af683\s+#\s+v4\.2\.2/);
+  assert.match(raw, /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\s+#\s+v7\.0\.1/);
 
   // pnpm setup pinned
-  assert.match(raw, /pnpm\/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1\s+#\s+v4\.1\.0/);
+  assert.match(raw, /pnpm\/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115\s+#\s+v6\.1\.1/);
 
   // setup-node pinned
-  assert.match(raw, /actions\/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020\s+#\s+v4\.4\.0/);
+  assert.match(raw, /actions\/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1\s+#\s+v7\.1\.0/);
 });
 
 test("deploy-website.yml: verifies ancestry, inputs, quality gates, candidate deployment, and promotion", () => {
@@ -245,9 +245,9 @@ test("docs-health.yml: parses cleanly, triggers on weekly schedule and workflow_
   assert.doesNotMatch(raw, /contents:\s*write/);
 
   // Pinned action SHAs
-  assert.match(raw, /actions\/checkout@11bd71901bbe5b1630ceea73d27597364c9af683\s+#\s+v4\.2\.2/);
-  assert.match(raw, /pnpm\/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1\s+#\s+v4\.1\.0/);
-  assert.match(raw, /actions\/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020\s+#\s+v4\.4\.0/);
+  assert.match(raw, /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\s+#\s+v7\.0\.1/);
+  assert.match(raw, /pnpm\/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115\s+#\s+v6\.1\.1/);
+  assert.match(raw, /actions\/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1\s+#\s+v7\.1\.0/);
 
   // Invocations of verify-published.mjs and test:web
   assert.match(raw, /node scripts\/docs\/verify-published\.mjs/);
@@ -274,8 +274,10 @@ test("ci.yml: isolates release packaging from docs builds and gates docs/deploy 
   assert.equal(pkg.scripts["test:docs"], "node --test scripts/docs/*.test.mjs");
   assert.equal(pkg.scripts["test:deploy"], "node --test scripts/deploy/*.test.mjs");
   const { jobs } = YAML.parse(readFileSync(ciWorkflowPath, "utf8"));
-  assert.deepEqual(jobs["core-matrix"].strategy.matrix["node-version"], ["20.x", "22.x", "24.x"]);
-  assert.deepEqual(jobs["package-smoke"].strategy.matrix["node-version"], ["20.x", "24.x"]);
+  assert.deepEqual(jobs["core-matrix"].strategy.matrix["node-version"], ["22.x", "24.x"]);
+  assert.deepEqual(jobs["package-smoke"].strategy.matrix["node-version"], ["22.12.0", "24.x"]);
+  const corePkg = JSON.parse(readFileSync(path.join(root, "packages/core/package.json"), "utf8"));
+  assert.equal(corePkg.engines.node, ">=22.12.0");
   for (const [jobName, script, result] of [
     ["website", "test:docs", "WEBSITE"],
     ["deploy-tests", "test:deploy", "DEPLOY"],
@@ -291,4 +293,27 @@ test("ci.yml: isolates release packaging from docs builds and gates docs/deploy 
     assert.equal(jobs.required.steps[0].env[result], `\${{ needs.${jobName}.result }}`);
     assert.ok(jobs.required.steps[0].run.includes(`test "$${result}" = success`));
   }
+});
+
+test("all workflows pin checkout, pnpm setup, and setup-node to the same SHA and version comment", () => {
+  const expectedPins = {
+    "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1",
+    "pnpm/action-setup": "73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1",
+    "actions/setup-node": "949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0",
+  };
+  const workflowsDir = path.join(root, ".github/workflows");
+  const workflowFiles = readdirSync(workflowsDir).filter((file) => file.endsWith(".yml"));
+  const seen = new Set();
+
+  for (const file of workflowFiles) {
+    const raw = readFileSync(path.join(workflowsDir, file), "utf8");
+    for (const match of raw.matchAll(/uses:\s*([\w-]+\/[\w-]+)@(\S+(?:\s+#\s+\S+)?)/g)) {
+      const [, action, pin] = match;
+      if (action in expectedPins) {
+        assert.equal(pin, expectedPins[action], `${file}: ${action}`);
+        seen.add(action);
+      }
+    }
+  }
+  assert.deepEqual([...seen].sort(), Object.keys(expectedPins).sort());
 });

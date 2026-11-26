@@ -2,7 +2,7 @@
   "name": "@agent-interaction-kit/website",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.18.0" },
+  "engines": { "node": ">=22.23.4" },
   "scripts": {
     "dev": "astro dev --host 127.0.0.1",
     "prebuild": "pnpm --filter @agent-interaction-kit/core build && node scripts/validate-examples.mjs",
@@ -19,7 +19,7 @@
     "@fontsource/source-serif-4": "^5.2.0",
     "@radix-ui/react-tabs": "^1.1.13",
     "@tailwindcss/vite": "4.3.3",
-    "astro": "7.3.1",
+    "astro": "7.4.7",
     "clsx": "^2.1.1",
     "motion": "13.2.0",
     "react": "19.2.8",
