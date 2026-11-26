@@ -160,7 +160,7 @@ describe("Compatibility Engine", () => {
         );
       });
 
-      it.each(["definitions", "$defs"])("ignores unreferenced %s", (keyword) => {
+      it.each(["definitions"])("ignores unreferenced %s", (keyword) => {
         const report = evaluateSchema({ type: "object", [keyword]: { unused: { not: {} } } });
         expect(report.status).toBe("pass");
         expect(report.diagnostics).toHaveLength(0);

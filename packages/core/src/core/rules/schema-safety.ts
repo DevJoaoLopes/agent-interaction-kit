@@ -5,6 +5,7 @@ const UNSUPPORTED_KEYWORDS = [
   "anyOf",
   "allOf",
   "$ref",
+  "$defs",
 ] as const;
 
 export function findUnsupportedConstruct(schema: unknown, currentPath = ""): string | null {

@@ -1,6 +1,6 @@
 import type { ToolDescriptor, ToolReturnDescriptor } from "../../contracts/types.js";
 import type { Diagnostic } from "../diagnostics.js";
-import { schemaHasType, schemaTypesEqual } from "../schema-types.js";
+import { readerConstIsGuaranteed, schemaHasType, schemaTypesEqual } from "../schema-types.js";
 import { findUnsupportedConstruct } from "./schema-safety.js";
 
 const ROOT_PATH = "/returns/schema";
@@ -56,6 +56,20 @@ function checkSchemaPair(
       });
       return;
     }
+  }
+
+  if (!readerConstIsGuaranteed(cSchema, pSchema)) {
+    diagnostics.push({
+      code: "AIK-RESULT-001",
+      severity: "error",
+      toolName,
+      path: `${basePath}/const`,
+      message: fieldName
+        ? `Tool "${toolName}": result field "${fieldName}" const is incompatible.`
+        : `Tool "${toolName}": result const is incompatible.`,
+      expected: cSchema.const,
+      actual: Object.hasOwn(pSchema, "const") ? pSchema.const : undefined,
+    });
   }
 
   if (schemaHasType(cSchema.type, "object") && schemaHasType(pSchema.type, "object")) {
