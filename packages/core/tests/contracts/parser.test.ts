@@ -115,4 +115,28 @@ describe("Contracts Parser", () => {
       }
     });
   });
+
+  it("rejects a provider manifest with two tools of the same name", () => {
+    const duplicate = JSON.parse(JSON.stringify(validProvider)) as typeof validProvider;
+    duplicate.tools = [...duplicate.tools, { ...duplicate.tools[0] }];
+    const result = parseProviderManifest(duplicate);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(
+        result.errors.some((error) => /duplicate tool name "searchDocuments"/i.test(error)),
+      ).toBe(true);
+    }
+  });
+
+  it("rejects a provider tool whose parameters type is not object", () => {
+    const invalid = JSON.parse(JSON.stringify(validProvider)) as typeof validProvider;
+    invalid.tools[0].parameters = { type: "string" } as (typeof invalid.tools)[0]["parameters"];
+    const result = parseProviderManifest(invalid);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(
+        result.errors.some((error) => /parameters/i.test(error) && /object/i.test(error)),
+      ).toBe(true);
+    }
+  });
 });
