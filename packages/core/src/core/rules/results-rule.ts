@@ -3,6 +3,7 @@ import type { Diagnostic } from "../diagnostics.js";
 import { schemaHasType, schemaTypesEqual } from "../schema-types.js";
 import { findUnsupportedConstruct } from "./schema-safety.js";
 
+const ROOT_PATH = "/returns/schema";
 const SCALAR_TYPES = new Set(["string", "number", "integer", "boolean", "null"]);
 
 function pointerSegment(name: string): string {
@@ -29,7 +30,7 @@ function checkSchemaPair(
   fieldName?: string,
 ): void {
   if (cSchema.type && pSchema.type && !schemaTypesEqual(cSchema.type, pSchema.type)) {
-    if (scalarsIncompatible(cSchema.type, pSchema.type)) {
+    if (basePath !== ROOT_PATH && scalarsIncompatible(cSchema.type, pSchema.type)) {
       diagnostics.push({
         code: "AIK-RESULT-003",
         severity: "error",
@@ -43,7 +44,7 @@ function checkSchemaPair(
       });
       return;
     }
-    if (!(isScalarType(cSchema.type) && isScalarType(pSchema.type))) {
+    if (basePath === ROOT_PATH || !(isScalarType(cSchema.type) && isScalarType(pSchema.type))) {
       diagnostics.push({
         code: "AIK-RESULT-001",
         severity: "error",
@@ -185,7 +186,7 @@ export function checkResults(
   checkSchemaPair(
     consumerExpectedReturns.schema as Record<string, unknown>,
     providerReturns.schema as Record<string, unknown>,
-    "/returns/schema",
+    ROOT_PATH,
     toolName,
     diagnostics,
   );
