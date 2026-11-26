@@ -1,5 +1,6 @@
 import type { ToolDescriptor, ToolReturnDescriptor } from "../../contracts/types.js";
 import type { Diagnostic } from "../diagnostics.js";
+import { schemaTypesEqual } from "../schema-types.js";
 import { findUnsupportedConstruct } from "./schema-safety.js";
 
 const SCALAR_TYPES = new Set(["string", "number", "integer", "boolean", "null"]);
@@ -45,7 +46,7 @@ export function checkResults(
   const pSchema = providerReturns.schema as Record<string, unknown>;
 
   // Root type check (e.g. array vs object)
-  if (cSchema.type && pSchema.type && cSchema.type !== pSchema.type) {
+  if (cSchema.type && pSchema.type && !schemaTypesEqual(cSchema.type, pSchema.type)) {
     diagnostics.push({
       code: "AIK-RESULT-001",
       severity: "error",
