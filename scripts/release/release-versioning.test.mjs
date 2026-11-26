@@ -437,15 +437,15 @@ test(".github/workflows/release.yml defines hardened publish job with pinned act
   // Pinned actions with comments
   assert.match(
     content,
-    /actions\/checkout@11bd71901bbe5b1630ceea73d27597364c9af683\s+#\s+v4\.2\.2/,
+    /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\s+#\s+v7\.0\.1/,
   );
   assert.match(
     content,
-    /pnpm\/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1\s+#\s+v4\.1\.0/,
+    /pnpm\/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115\s+#\s+v6\.1\.1/,
   );
   assert.match(
     content,
-    /actions\/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020\s+#\s+v4\.4\.0/,
+    /actions\/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1\s+#\s+v7\.1\.0/,
   );
   assert.match(
     content,

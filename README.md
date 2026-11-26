@@ -28,6 +28,19 @@ When a tool schema changes—such as renaming a return field, dropping a require
 
 ### 1. Install
 
+> [!NOTE]
+> `@agent-interaction-kit/core` is not on npm yet. The commands in this Quickstart are for the first release. Until then, build the package from this repository and install the tarball:
+>
+> ```bash
+> git clone https://github.com/DevJoaoLopes/agent-interaction-kit.git
+> cd agent-interaction-kit
+> pnpm install --frozen-lockfile
+> pnpm build:core
+> npm pack --pack-destination .. ./packages/core
+> cd ../your-project
+> npm install --save-dev ../agent-interaction-kit-core-*.tgz
+> ```
+
 Install the core package in your project as a development dependency:
 
 ```bash
