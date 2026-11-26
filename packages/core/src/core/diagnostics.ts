@@ -3,6 +3,7 @@ export type DiagnosticCode =
   | "AIK-TOOL-002"
   | "AIK-INPUT-001"
   | "AIK-INPUT-002"
+  | "AIK-INPUT-003"
   | "AIK-RESULT-001"
   | "AIK-RESULT-002"
   | "AIK-RESULT-003"

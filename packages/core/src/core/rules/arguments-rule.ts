@@ -2,6 +2,23 @@ import type { ToolDescriptor, ToolParameterSchema } from "../../contracts/types.
 import type { Diagnostic } from "../diagnostics.js";
 import { findUnsupportedConstruct } from "./schema-safety.js";
 
+const SCALAR_TYPES = new Set(["string", "number", "integer", "boolean", "null"]);
+
+function pointerSegment(name: string): string {
+  return name.replace(/~/g, "~0").replace(/\//g, "~1");
+}
+
+function isScalarType(type: unknown): type is string {
+  return typeof type === "string" && SCALAR_TYPES.has(type);
+}
+
+function scalarsIncompatible(readerType: unknown, producerType: unknown): boolean {
+  if (!isScalarType(readerType) || !isScalarType(producerType)) {
+    return false;
+  }
+  return readerType !== producerType && !(readerType === "number" && producerType === "integer");
+}
+
 export function checkArguments(
   consumerExpectedParams: ToolParameterSchema | undefined,
   providerTool: ToolDescriptor,
@@ -118,6 +135,37 @@ export function checkArguments(
           message: `Tool "${toolName}": argument "${propName}" enum mismatch. ${receptorSide} restricts to enum [${receptorProp.enum.map((v) => JSON.stringify(v)).join(", ")}], but ${emitterSide} does not restrict allowed values.`,
         });
       }
+    }
+  }
+
+  // 3. Scalar types (AIK-INPUT-003)
+  // Backend tools: the UI reads arguments (covariance). Frontend tools: the
+  // backend emits and the frontend receives (contravariance). In both cases
+  // the value flows from the provider schema to the consumer schema, so
+  // integer is assignable to number and the reverse is not.
+  const readerProps = (consumerExpectedParams.properties || {}) as Record<
+    string,
+    { type?: unknown }
+  >;
+  const producerProps = (providerTool.parameters.properties || {}) as Record<
+    string,
+    { type?: unknown }
+  >;
+  for (const [propName, readerProp] of Object.entries(readerProps)) {
+    const producerProp = producerProps[propName];
+    if (!producerProp) {
+      continue;
+    }
+    if (scalarsIncompatible(readerProp.type, producerProp.type)) {
+      diagnostics.push({
+        code: "AIK-INPUT-003",
+        severity: "error",
+        toolName,
+        path: `/parameters/properties/${pointerSegment(propName)}/type`,
+        message: `Tool "${toolName}": argument "${propName}" type is incompatible.`,
+        expected: readerProp.type,
+        actual: producerProp.type,
+      });
     }
   }
 
