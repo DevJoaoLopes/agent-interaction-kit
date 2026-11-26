@@ -25,10 +25,11 @@ This skill instructs an AI coding agent on how to inspect an application codebas
 4. Output to `aik.provider.json` under `tools[]` with `executionSide: "backend"`.
 
 ### Frontend (React / CopilotKit / AG-UI)
-1. Search for `useCopilotAction` or client tool registrations:
+1. Search for client tool registrations, such as CopilotKit v2 `useFrontendTool` (`@copilotkit/react-core/v2`):
    - Extract `name`, `parameters`, and whether the handler executes in the browser (`executionSide: "frontend"`).
-2. Search for components rendering tool outputs:
+2. Search for components rendering tool outputs, such as CopilotKit v2 `useRenderTool` or the `render` option of `useFrontendTool`:
    - Identify which properties of the result are accessed (e.g. `result.map(item => item.title)` requires `title`).
+   - CopilotKit passes `result` to `render` as a string. Follow the `JSON.parse` to find the fields the component reads.
 3. Output to `aik.consumer.json` under `requires[]`.
 
 ## 3. Validation
