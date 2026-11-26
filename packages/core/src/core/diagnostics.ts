@@ -6,6 +6,7 @@ export type DiagnosticCode =
   | "AIK-RESULT-001"
   | "AIK-RESULT-002"
   | "AIK-RESULT-003"
+  | "AIK-RESULT-004"
   | "AIK-SCHEMA-001";
 
 export interface Diagnostic {

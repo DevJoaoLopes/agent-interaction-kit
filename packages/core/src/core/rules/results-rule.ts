@@ -27,6 +27,22 @@ export function checkResults(
     return diagnostics;
   }
 
+  if (
+    consumerExpectedReturns?.format &&
+    providerReturns?.format &&
+    consumerExpectedReturns.format !== providerReturns.format
+  ) {
+    diagnostics.push({
+      code: "AIK-RESULT-004",
+      severity: "error",
+      toolName,
+      path: "/returns/format",
+      message: `Tool "${toolName}": result format mismatch. Consumer expects "${consumerExpectedReturns.format}", but provider produces "${providerReturns.format}".`,
+      expected: consumerExpectedReturns.format,
+      actual: providerReturns.format,
+    });
+  }
+
   if (!consumerExpectedReturns || !consumerExpectedReturns.schema) {
     return diagnostics;
   }
