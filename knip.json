@@ -16,8 +16,8 @@
       "project": ["src/**/*.ts!", "tests/**/*.ts"]
     },
     "apps/website": {
-      "entry": ["src/pages/**/*.{astro,ts,tsx}"],
-      "project": ["src/**/*.{astro,ts,tsx}"],
+      "entry": ["src/pages/**/*.{astro,ts,tsx}!"],
+      "project": ["src/**/*.{astro,ts,tsx}!"],
       "ignoreDependencies": ["tailwindcss"]
     }
   }

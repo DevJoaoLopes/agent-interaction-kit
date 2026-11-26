@@ -45,11 +45,13 @@ export const consumer: ConsumerExpectations = {
     },
   ],
 };
+/** @internal Fixture for scripts/validate-examples.mjs. */
 export const broken = structuredClone(provider);
 broken.tools[0].returns.schema = {
   type: "object",
   properties: { id: { type: "string" }, amount: { type: "number" } },
   required: ["id", "amount"],
 };
+/** @internal Fixture for scripts/validate-examples.mjs. */
 export const unknown = structuredClone(provider);
 unknown.tools[0].returns.schema = { type: "object", not: { type: "null" } };
