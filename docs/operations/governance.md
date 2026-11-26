@@ -187,7 +187,7 @@ The CI pipeline runs via GitHub Actions. All status checks enforce quality gates
 
 | Check Name | Originating Workflow | GitHub App ID | Description |
 | --- | --- | --- | --- |
-| `CI required` | `.github/workflows/ci.yml` (`required` job) | `15368` (GitHub Actions) | Aggregation gate evaluating `lint` (Biome + Knip), `core-matrix` (Node 20, 22, 24 on Linux and macOS), and `website` (build + Playwright e2e). Fails if any job fails or is cancelled. |
+| `CI required` | `.github/workflows/ci.yml` (`required` job) | `15368` (GitHub Actions) | Aggregation gate evaluating `lint` (Biome + Knip), `core-matrix` (Node 22, 24 on Linux and macOS), and `website` (build + Playwright e2e). Fails if any job fails or is cancelled. |
 | `PR title` | `.github/workflows/commitlint.yml` (`commitlint` job) | `15368` (GitHub Actions) | Validates PR title against Conventional Commits (`@commitlint/config-conventional`). |
 
 ### Why `integration_id: 15368` is Critical:

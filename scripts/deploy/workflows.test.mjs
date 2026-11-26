@@ -274,8 +274,10 @@ test("ci.yml: isolates release packaging from docs builds and gates docs/deploy 
   assert.equal(pkg.scripts["test:docs"], "node --test scripts/docs/*.test.mjs");
   assert.equal(pkg.scripts["test:deploy"], "node --test scripts/deploy/*.test.mjs");
   const { jobs } = YAML.parse(readFileSync(ciWorkflowPath, "utf8"));
-  assert.deepEqual(jobs["core-matrix"].strategy.matrix["node-version"], ["20.x", "22.x", "24.x"]);
-  assert.deepEqual(jobs["package-smoke"].strategy.matrix["node-version"], ["20.x", "24.x"]);
+  assert.deepEqual(jobs["core-matrix"].strategy.matrix["node-version"], ["22.x", "24.x"]);
+  assert.deepEqual(jobs["package-smoke"].strategy.matrix["node-version"], ["22.12.0", "24.x"]);
+  const corePkg = JSON.parse(readFileSync(path.join(root, "packages/core/package.json"), "utf8"));
+  assert.equal(corePkg.engines.node, ">=22.12.0");
   for (const [jobName, script, result] of [
     ["website", "test:docs", "WEBSITE"],
     ["deploy-tests", "test:deploy", "DEPLOY"],

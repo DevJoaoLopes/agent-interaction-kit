@@ -18,7 +18,7 @@ pnpm test:docs    # Validates doc snippets, manifest schemas, and consumer insta
 pnpm test:web     # Runs Playwright browser and accessibility checks on built site
 ```
 
-The core remains independently buildable on Node 20.
+The core remains independently buildable on Node 22.12.
 
 ## Vercel project configuration
 

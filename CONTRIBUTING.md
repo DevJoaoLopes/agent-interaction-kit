@@ -17,7 +17,7 @@ Agent Interaction Kit is organized as a monorepo managed with `pnpm` workspaces:
 
 ## Prerequisites
 
-- **Node.js**: `v24` (or latest LTS). The `@agent-interaction-kit/core` runtime targets Node.js `>= 20`, but workspace tooling runs on Node 24.
+- **Node.js**: `v24` (or latest LTS). The `@agent-interaction-kit/core` runtime targets Node.js `>= 22.12`, but workspace tooling runs on Node 24.
 - **pnpm**: `v10` (matching the version configured in GitHub Actions workflows).
 
 ---
