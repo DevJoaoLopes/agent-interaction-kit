@@ -1,4 +1,5 @@
 export type DiagnosticCode =
+  | "AIK-CONTEXT-001"
   | "AIK-TOOL-001"
   | "AIK-TOOL-002"
   | "AIK-INPUT-001"
