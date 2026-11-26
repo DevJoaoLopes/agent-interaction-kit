@@ -61,6 +61,7 @@ export function checkResults(
   // Required properties check for object returns
   if (cSchema.type === "object" && pSchema.type === "object") {
     const cRequired = (cSchema.required as string[]) || [];
+    const pRequired = new Set((pSchema.required as string[]) || []);
     const pProps = (pSchema.properties as Record<string, unknown>) || {};
     const cProps = (cSchema.properties as Record<string, Record<string, unknown>>) || {};
     for (const reqProp of cRequired) {
@@ -72,6 +73,14 @@ export function checkResults(
           toolName,
           path: `/returns/schema/properties/${segment}`,
           message: `Tool "${toolName}": consumer requires result field "${reqProp}", which is missing in provider return schema.`,
+        });
+      } else if (!pRequired.has(reqProp)) {
+        diagnostics.push({
+          code: "AIK-RESULT-002",
+          severity: "error",
+          toolName,
+          path: `/returns/schema/properties/${segment}`,
+          message: `Tool "${toolName}": consumer requires result field "${reqProp}", but the provider declares it as optional.`,
         });
       } else {
         const pField = pProps[reqProp] as Record<string, unknown> | undefined;
