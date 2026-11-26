@@ -51,7 +51,7 @@ export function checkArguments(
     for (const reqField of readerRequired) {
       const declared = reqField in producerProperties;
       const guaranteed = producerRequired.has(reqField);
-      if (!declared || !guaranteed) {
+      if (!guaranteed) {
         const detail = declared
           ? "but the provider declares it as optional"
           : "which the provider does not declare";

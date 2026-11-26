@@ -55,4 +55,12 @@ describe("backend tool argument covariance", () => {
     expect(report.status).toBe("pass");
     expect(report.diagnostics).toEqual([]);
   });
+
+  it("passes when the provider requires the field without listing it in properties", () => {
+    const requiredOnly: ProviderManifest = structuredClone(provider);
+    requiredOnly.tools[0].parameters = { type: "object", required: ["city"] };
+    const report = evaluateCompatibility(requiredOnly, consumer);
+    expect(report.status).toBe("pass");
+    expect(report.diagnostics).toEqual([]);
+  });
 });
