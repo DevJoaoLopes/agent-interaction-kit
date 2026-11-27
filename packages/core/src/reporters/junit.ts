@@ -43,6 +43,25 @@ export function formatJunitReport(report: CompatibilityReport): string {
     }
   }
 
+  // Diagnostics that belong to no checked tool (for example manifest-level
+  // findings) still need a testcase, otherwise the failure count has no entry.
+  const checked = new Set(report.checkedTools);
+  for (const diag of report.diagnostics) {
+    if (checked.has(diag.toolName)) {
+      continue;
+    }
+    testsCount += 1;
+    const escapedTool = escapeXml(diag.toolName);
+    const escapedCode = escapeXml(diag.code);
+    const escapedMsg = escapeXml(diag.message);
+    const tag = diag.severity === "error" ? "failure" : "warning";
+    testCasesXml += `    <testcase classname="AIK.${escapedTool}" name="${escapedCode}" time="0.001">\n`;
+    testCasesXml += `      <${tag} message="${escapedMsg}" type="${escapedCode}">\n`;
+    testCasesXml += `        ${escapedMsg}\n`;
+    testCasesXml += `      </${tag}>\n`;
+    testCasesXml += "    </testcase>\n";
+  }
+
   if (testsCount === 0) {
     testCasesXml = '    <testcase classname="AIK" name="ContractCompatibility" time="0.001" />\n';
     testsCount = 1;

@@ -12,6 +12,18 @@ export function evaluateCompatibility(
   const allDiagnostics: Diagnostic[] = [];
   const checkedTools: string[] = [];
 
+  if (provider.contextProfile !== consumer.contextProfile) {
+    allDiagnostics.push({
+      code: "AIK-CONTEXT-001",
+      severity: "error",
+      toolName: "(manifest)",
+      path: "/contextProfile",
+      message: `Context profile mismatch. Consumer expects "${consumer.contextProfile}", but provider declares "${provider.contextProfile}".`,
+      expected: consumer.contextProfile,
+      actual: provider.contextProfile,
+    });
+  }
+
   for (const req of consumer.requires) {
     checkedTools.push(req.toolName);
     const presence = checkToolPresence(req, provider);
