@@ -7,6 +7,7 @@ export default defineConfig([
       "contracts/index": "src/contracts/index.ts",
       "core/index": "src/core/index.ts",
       "reporters/index": "src/reporters/index.ts",
+      "builders/index": "src/builders/index.ts",
     },
     format: ["esm"],
     dts: true,

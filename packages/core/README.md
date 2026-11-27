@@ -185,6 +185,37 @@ if (provider.ok && consumer.ok) {
 
 ---
 
+### Manifest builders
+
+The builders construct the same manifests in TypeScript, with an explicit return type. Tool lists can be declared with `as const satisfies`:
+
+```typescript
+import {
+  createConsumerExpectations,
+  createProviderManifest,
+  toolFromJsonSchema,
+} from "@agent-interaction-kit/core/builders";
+import type { ToolDescriptor } from "@agent-interaction-kit/core/contracts";
+
+const tools = [
+  toolFromJsonSchema({
+    name: "searchDocuments",
+    executionSide: "backend",
+    parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
+    returns: { format: "json", schema: { type: "object", properties: { title: { type: "string" } } } },
+  }),
+] as const satisfies readonly ToolDescriptor[];
+
+const provider = createProviderManifest({
+  producer: { name: "backend", version: "1.0.0", buildId: "b1" },
+  protocolProfile: "ag-ui@0.1",
+  contextProfile: "default",
+  tools,
+});
+```
+
+`createConsumerExpectations` follows the same pattern for `aik.consumer.json`. `schemaVersion` defaults to `"1.0.0"`. `toolFromJsonSchema` defaults omitted `returns` to `{ format: "json" }` and fills a missing `parameters.type` as `"object"`. It throws a `TypeError` if `parameters.type` is present and is not `"object"`.
+
 ## 📋 Diagnostic Codes
 
 | Code | Severity | Description |
