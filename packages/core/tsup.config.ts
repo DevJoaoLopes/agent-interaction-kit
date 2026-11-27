@@ -8,6 +8,7 @@ export default defineConfig([
       "core/index": "src/core/index.ts",
       "reporters/index": "src/reporters/index.ts",
       "builders/index": "src/builders/index.ts",
+      "standard-schema/index": "src/standard-schema/index.ts",
     },
     format: ["esm"],
     dts: true,

@@ -67,7 +67,11 @@ const displayVersion = isUnreleased ? "1.0.0-beta.1" : releaseInfo.version;
         >generate-contracts skill</a
       > to assist in extracting manifests from your codebase. You can also build the same manifests in
       TypeScript with <code>createProviderManifest</code>, <code>createConsumerExpectations</code>
-      and <code>toolFromJsonSchema</code> from <code>@agent-interaction-kit/core/builders</code>.
+      and <code>toolFromJsonSchema</code> from <code>@agent-interaction-kit/core/builders</code>. To
+      turn a Standard JSON Schema value (for example a Zod 4 schema) into draft-07 JSON Schema, use
+      <code>toJsonSchema</code> from <code>@agent-interaction-kit/core/standard-schema</code>, with
+      <code>io: "input"</code> or <code>"output"</code>. Conversion failures are returned as an
+      error result, not thrown.
     </p>
     <h2>03 / Check the contract</h2>
     <p>Run the check using the installed package binary:</p>
