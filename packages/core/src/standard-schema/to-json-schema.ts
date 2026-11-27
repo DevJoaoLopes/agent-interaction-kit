@@ -4,7 +4,7 @@ import type { Result } from "../contracts/types.js";
 export type ToJsonSchemaIo = "input" | "output";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object";
+  return !!value && (typeof value === "object" || typeof value === "function");
 }
 
 function getConverter(

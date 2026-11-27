@@ -46,6 +46,31 @@ describe("toJsonSchema", () => {
     expect(result.errors[0]).toMatch(/cannot convert schema to json schema/i);
   });
 
+  it("accepts a callable schema that implements ~standard.jsonSchema", () => {
+    const conversion = {
+      input: () => ({
+        $schema: "http://json-schema.org/draft-07/schema#",
+        type: "string",
+      }),
+      output: () => ({
+        $schema: "http://json-schema.org/draft-07/schema#",
+        type: "string",
+      }),
+    };
+    const callable = Object.assign((value: unknown) => value, {
+      "~standard": { version: 1, vendor: "test", jsonSchema: conversion },
+    });
+    const result = toJsonSchema(callable, "input");
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    expect(result.data).toEqual({
+      $schema: "http://json-schema.org/draft-07/schema#",
+      type: "string",
+    });
+  });
+
   it("returns a clear error when the schema has no Standard JSON Schema converter", () => {
     const valibotSchema = v.object({ city: v.string() });
     expect(() => toJsonSchema(valibotSchema, "input")).not.toThrow();
