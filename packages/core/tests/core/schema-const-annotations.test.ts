@@ -79,7 +79,7 @@ describe("const, $schema and draft 2020-12 annotations", () => {
     expect(report.diagnostics).toEqual([]);
   });
 
-  it("returns unknown with AIK-SCHEMA-001 when the schema uses $defs", () => {
+  it("does not report AIK-SCHEMA-001 for $defs when there is no $ref", () => {
     const schema = {
       type: "object",
       $defs: { city: { type: "string" } },
@@ -88,10 +88,23 @@ describe("const, $schema and draft 2020-12 annotations", () => {
     };
     const { provider, consumer } = pairWithResultSchema(schema);
     const report = evaluateCompatibility(provider, consumer);
+    expect(report.status).toBe("pass");
+    expect(report.diagnostics).toEqual([]);
+  });
+
+  it("returns unknown with AIK-SCHEMA-001 when the schema uses a $ref", () => {
+    const schema = {
+      type: "object",
+      $defs: { city: { type: "string" } },
+      properties: { city: { $ref: "#/$defs/city" } },
+      required: ["city"],
+    };
+    const { provider, consumer } = pairWithResultSchema(schema);
+    const report = evaluateCompatibility(provider, consumer);
     expect(report.status).toBe("unknown");
     const diag = report.diagnostics.find((item) => item.code === "AIK-SCHEMA-001");
     expect(diag).toBeDefined();
-    expect(diag?.path).toBe("/returns/schema/$defs");
+    expect(diag?.path).toBe("/returns/schema/properties/city/$ref");
   });
 
   it("fails when result const values differ", () => {
