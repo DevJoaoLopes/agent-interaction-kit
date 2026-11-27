@@ -46,6 +46,10 @@
     "./reporters": {
       "import": "./dist/reporters/index.js",
       "types": "./dist/reporters/index.d.ts"
+    },
+    "./builders": {
+      "import": "./dist/builders/index.js",
+      "types": "./dist/builders/index.d.ts"
     }
   },
   "engines": {
