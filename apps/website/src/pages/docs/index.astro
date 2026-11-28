@@ -72,7 +72,11 @@ const displayVersion = isUnreleased ? "1.0.0-beta.1" : releaseInfo.version;
       <code>toJsonSchema</code> from <code>@agent-interaction-kit/core/standard-schema</code>, with
       <code>io: "input"</code> or <code>"output"</code>. Conversion failures are returned as an
       error result, not thrown. To describe the tools of an AG-UI <code>RunAgentInput</code>, use
-      <code>fromAgUiTools</code> from <code>@agent-interaction-kit/core/ag-ui</code>.
+      <code>fromAgUiTools</code> from <code>@agent-interaction-kit/core/ag-ui</code>. For a Mastra
+      agent, <code>exportProviderManifest</code> from <code>@agent-interaction-kit/mastra</code> builds
+      <code>aik.provider.json</code> from the agent's tools (peer dependency <code
+        >@mastra/core ^1.29</code
+      >).
     </p>
     <p>
       For a React frontend, declare each tool once with <code>defineToolContract</code> from <code

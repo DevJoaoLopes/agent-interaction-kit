@@ -18,6 +18,10 @@
       ],
       "project": ["src/**/*.ts!", "tests/**/*.ts"]
     },
+    "packages/mastra": {
+      "entry": ["src/index.ts!"],
+      "project": ["src/**/*.ts!", "tests/**/*.ts"]
+    },
     "apps/website": {
       "entry": ["src/pages/**/*.{astro,ts,tsx}!"],
       "project": ["src/**/*.{astro,ts,tsx}!"],
