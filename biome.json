@@ -7,6 +7,9 @@
       "**/.astro/**",
       "**/test-results/**",
       "**/playwright-report/**",
+      "examples/maf-dotnet/**/bin/**",
+      "examples/maf-dotnet/**/obj/**",
+      "examples/maf-dotnet/fixtures/tools.json",
       "apps/website/src/styles/**"
     ]
   },
