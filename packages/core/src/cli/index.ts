@@ -43,7 +43,7 @@ export function createCli(): Command {
     .option("-o, --output <path>", "Write the manifest to a file instead of stdout")
     .action(async (input: string, opts) => {
       const exitCode = await runManifest({ ...opts, input });
-      process.exit(exitCode);
+      process.exitCode = exitCode;
     });
 
   return program;
