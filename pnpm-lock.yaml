@@ -112,6 +112,9 @@ importers:
         specifier: ^15.1.0
         version: 15.1.0
     devDependencies:
+      '@ag-ui/core':
+        specifier: 1.0.5
+        version: 1.0.5(zod@4.6.7)
       '@biomejs/biome':
         specifier: ^1.9.4
         version: 1.9.4
@@ -135,6 +138,14 @@ importers:
         version: 4.6.7
 
 packages:
+
+  '@ag-ui/core@1.0.5':
+    resolution: {integrity: sha512-W7xg7E/bVco3svYxZCp3CMqJ6/fB15U7yAaMS3mhLCwwlJXFzZJ/bGwMqnNrx6Afmj1WmnjFKzliYds+KFXMMQ==}
+    peerDependencies:
+      zod: ^3.25.18 || ^4.0.0
+    peerDependenciesMeta:
+      zod:
+        optional: true
 
   '@astrojs/check@0.9.10':
     resolution: {integrity: sha512-zgx/UQMozdjOa3bOxjgeCFdtpE3c9rRX6xHwa+2QXvy8z8Akifu2AtubHyv/zzC2znO8dl8fFWL4K+Ba9kS8HQ==}
@@ -5901,6 +5912,10 @@ packages:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
 snapshots:
+
+  '@ag-ui/core@1.0.5(zod@4.6.7)':
+    optionalDependencies:
+      zod: 4.6.7
 
   '@astrojs/check@0.9.10(prettier-plugin-astro@0.14.1)(prettier@3.9.6)(typescript@5.9.3)':
     dependencies:
