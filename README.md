@@ -231,6 +231,27 @@ const provider = createProviderManifest({
 
 `createConsumerExpectations` follows the same pattern for `aik.consumer.json`. `schemaVersion` defaults to `"1.0.0"`. `toolFromJsonSchema` defaults omitted `returns` to `{ format: "json" }` and fills a missing `parameters.type` as `"object"`. It throws a `TypeError` if `parameters.type` is present and is not `"object"`.
 
+### Standard JSON Schema
+
+Convert a Standard JSON Schema (`~standard.jsonSchema`) value to a JSON Schema object targeting draft-07. The result uses the same `Result` type as the parsers: `{ ok: true, data }` or `{ ok: false, errors }`. Conversion failures (for example `z.date()`) are not thrown.
+
+```typescript
+import { toJsonSchema } from "@agent-interaction-kit/core/standard-schema";
+import { z } from "zod";
+
+const schema = z.object({
+  city: z.string(),
+  units: z.enum(["c", "f"]).default("c"),
+});
+
+const input = toJsonSchema(schema, "input");
+const output = toJsonSchema(schema, "output");
+// input.ok && input.data.required → ["city"]
+// output.ok && output.data.required → ["city", "units"]
+```
+
+`io: "input"` and `io: "output"` follow the vendor converter. A schema that only implements Standard Schema validation, without `~standard.jsonSchema`, returns an error result.
+
 ## 📋 Diagnostic Codes
 
 | Code | Severity | Description |
