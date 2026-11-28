@@ -284,6 +284,23 @@ export const consumer = createConsumerExpectations({
 
 For a backend tool that the UI only renders, pass `executionSide: "backend"` and spread `tool` into `useRenderTool` together with `render`. `parameters` is converted with `io: "input"` and `returns` with `io: "output"`. A schema that cannot be converted, or `parameters` that is not an object schema, throws a `TypeError` when the contract is defined.
 
+### Mastra agents
+
+The `@agent-interaction-kit/mastra` package exports a provider manifest straight from a Mastra agent's tools, with `@mastra/core` as a peer dependency:
+
+```typescript
+import { exportProviderManifest } from "@agent-interaction-kit/mastra";
+
+const manifest = await exportProviderManifest({
+  agent,
+  producer: { name: "backend", version: "1.0.0", buildId: "b1" },
+  protocolProfile: "ag-ui@0.1",
+  contextProfile: "default",
+});
+```
+
+See [`packages/mastra`](https://github.com/DevJoaoLopes/agent-interaction-kit/blob/main/packages/mastra/README.md) for how tools are mapped.
+
 ## 📋 Diagnostic Codes
 
 | Code | Severity | Description |

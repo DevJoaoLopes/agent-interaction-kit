@@ -1,0 +1,52 @@
+{
+  "name": "@agent-interaction-kit/mastra",
+  "version": "0.1.0",
+  "description": "Export Agent Interaction Kit provider manifests from Mastra agents",
+  "license": "MIT",
+  "author": "João Victor Lopes (https://github.com/DevJoaoLopes)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DevJoaoLopes/agent-interaction-kit.git",
+    "directory": "packages/mastra"
+  },
+  "bugs": {
+    "url": "https://github.com/DevJoaoLopes/agent-interaction-kit/issues"
+  },
+  "homepage": "https://github.com/DevJoaoLopes/agent-interaction-kit#readme",
+  "keywords": ["agent", "contract-testing", "mastra", "ag-ui", "ai-tools"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "check": "biome check ."
+  },
+  "dependencies": {
+    "@agent-interaction-kit/core": "workspace:^"
+  },
+  "peerDependencies": {
+    "@mastra/core": "^1.29.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@mastra/core": "1.86.0",
+    "@types/node": "^22.13.1",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.12",
+    "zod": "4.6.7"
+  }
+}
