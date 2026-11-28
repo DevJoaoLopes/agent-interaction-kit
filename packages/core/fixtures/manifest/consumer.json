@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0.0",
+  "consumer": { "name": "booking-ui", "version": "2.0.0", "buildId": "ui-77" },
+  "protocolProfile": "ag-ui@0.1",
+  "contextProfile": "default",
+  "requires": [
+    {
+      "toolName": "confirmBooking",
+      "executionSide": "frontend",
+      "expectedParameters": {
+        "type": "object",
+        "properties": { "bookingId": { "type": "string" } },
+        "required": ["bookingId"]
+      }
+    }
+  ]
+}
