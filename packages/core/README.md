@@ -237,6 +237,19 @@ const output = toJsonSchema(schema, "output");
 
 `io: "input"` and `io: "output"` follow the vendor converter. A schema that only implements Standard Schema validation, without `~standard.jsonSchema`, returns an error result.
 
+### AG-UI tools
+
+`fromAgUiTools` maps the AG-UI `Tool` list (`RunAgentInput.tools`) to `ToolDescriptor[]`. The core does not depend on `@ag-ui/core`: the parameter type is structural, so the AG-UI `Tool` type is accepted as is.
+
+```typescript
+import { fromAgUiTools } from "@agent-interaction-kit/core/ag-ui";
+
+const tools = fromAgUiTools(input.tools); // executionSide: "frontend"
+const backendTools = fromAgUiTools(listedByAgent, { executionSide: "backend" });
+```
+
+AG-UI tools are supplied by the client, so `executionSide` defaults to `"frontend"`. A missing, `null` or empty `parameters` becomes `{ type: "object", properties: {} }`; `metadata` is ignored; `returns` is `{ format: "json" }`. A `parameters` value that is not a JSON Schema object throws a `TypeError`.
+
 ## 📋 Diagnostic Codes
 
 | Code | Severity | Description |

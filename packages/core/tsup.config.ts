@@ -9,6 +9,7 @@ export default defineConfig([
       "reporters/index": "src/reporters/index.ts",
       "builders/index": "src/builders/index.ts",
       "standard-schema/index": "src/standard-schema/index.ts",
+      "ag-ui/index": "src/ag-ui/index.ts",
     },
     format: ["esm"],
     dts: true,

@@ -13,6 +13,7 @@
         "src/reporters/index.ts!",
         "src/builders/index.ts!",
         "src/standard-schema/index.ts!",
+        "src/ag-ui/index.ts!",
         "bin/aik.ts!"
       ],
       "project": ["src/**/*.ts!", "tests/**/*.ts"]
