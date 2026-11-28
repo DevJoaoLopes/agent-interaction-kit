@@ -74,6 +74,23 @@ const displayVersion = isUnreleased ? "1.0.0-beta.1" : releaseInfo.version;
       error result, not thrown. To describe the tools of an AG-UI <code>RunAgentInput</code>, use
       <code>fromAgUiTools</code> from <code>@agent-interaction-kit/core/ag-ui</code>.
     </p>
+    <p>
+      For a React frontend, declare each tool once with <code>defineToolContract</code> from <code
+        >@agent-interaction-kit/core/builders</code
+      >. Spread <code>tool</code> into CopilotKit v2 <code>useFrontendTool</code> (or <code
+        >useRenderTool</code
+      >) and add <code>requirement</code> to <code>requires</code> in your consumer manifest:
+    </p>
+    <pre
+      class="code-block"><code>{`const getWeather = defineToolContract({
+  name: "getWeather",
+  parameters: z.object({ city: z.string() }),
+  returns: z.object({ temperature: z.number() }),
+});
+
+useFrontendTool({ ...getWeather.tool, handler: async ({ city }) => lookup(city) });
+
+createConsumerExpectations({ /* ... */ requires: [getWeather.requirement] });`}</code></pre>
     <h2>03 / Check the contract</h2>
     <p>Run the check using the installed package binary:</p>
     <pre

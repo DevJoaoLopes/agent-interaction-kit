@@ -250,6 +250,40 @@ const backendTools = fromAgUiTools(listedByAgent, { executionSide: "backend" });
 
 AG-UI tools are supplied by the client, so `executionSide` defaults to `"frontend"`. A missing, `null` or empty `parameters` becomes `{ type: "object", properties: {} }`; `metadata` is ignored; `returns` is `{ format: "json" }`. A `parameters` value that is not a JSON Schema object throws a `TypeError`.
 
+### Frontend tool contracts
+
+`defineToolContract` declares a tool once, from a Zod 4 (or any Standard JSON Schema) schema. It returns the config that CopilotKit's v2 hooks accept and the `ConsumerRequirement` for `aik.consumer.json`.
+
+```tsx
+import { createConsumerExpectations, defineToolContract } from "@agent-interaction-kit/core/builders";
+import { useFrontendTool } from "@copilotkit/react-core/v2";
+import { z } from "zod";
+
+export const getWeather = defineToolContract({
+  name: "getWeather",
+  description: "Get the weather for a city",
+  parameters: z.object({ city: z.string() }),
+  returns: z.object({ temperature: z.number() }),
+});
+
+function Weather() {
+  useFrontendTool({
+    ...getWeather.tool,
+    handler: async ({ city }) => ({ temperature: await lookup(city) }),
+  });
+  return null;
+}
+
+export const consumer = createConsumerExpectations({
+  consumer: { name: "web", version: "1.0.0", buildId: "c1" },
+  protocolProfile: "ag-ui@0.1",
+  contextProfile: "default",
+  requires: [getWeather.requirement],
+});
+```
+
+For a backend tool that the UI only renders, pass `executionSide: "backend"` and spread `tool` into `useRenderTool` together with `render`. `parameters` is converted with `io: "input"` and `returns` with `io: "output"`. A schema that cannot be converted, or `parameters` that is not an object schema, throws a `TypeError` when the contract is defined.
+
 ## 📋 Diagnostic Codes
 
 | Code | Severity | Description |
