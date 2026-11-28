@@ -1,0 +1,136 @@
+{
+  "tools": [
+    {
+      "name": "getWeather",
+      "description": "Get the current weather for a city.",
+      "executionSide": "backend",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "description": "City name.",
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "Celsius",
+              "Fahrenheit"
+            ],
+            "default": "Celsius"
+          },
+          "days": {
+            "description": "Forecast horizon in days.",
+            "type": [
+              "integer",
+              "null"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "city"
+        ]
+      },
+      "returns": {
+        "format": "json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            },
+            "temperature": {
+              "type": "number"
+            },
+            "unit": {
+              "type": "string",
+              "enum": [
+                "Celsius",
+                "Fahrenheit"
+              ]
+            },
+            "note": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "city",
+            "temperature",
+            "unit",
+            "note"
+          ]
+        }
+      }
+    },
+    {
+      "name": "trackEvent",
+      "description": "Record an analytics event.",
+      "executionSide": "backend",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Event name.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "returns": {
+        "format": "json"
+      }
+    },
+    {
+      "name": "confirmBooking",
+      "description": "Ask the user to confirm a booking.",
+      "executionSide": "frontend",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "bookingId": {
+            "description": "Booking id.",
+            "type": "string"
+          },
+          "note": {
+            "description": "Optional note shown to the user.",
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "bookingId"
+        ]
+      },
+      "returns": {
+        "format": "json",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "confirmed": {
+              "type": "boolean"
+            },
+            "reason": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "confirmed",
+            "reason"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -293,6 +293,10 @@ const backendTools = fromAgUiTools(listedByAgent, { executionSide: "backend" });
 
 AG-UI tools are supplied by the client, so `executionSide` defaults to `"frontend"`. A missing, `null` or empty `parameters` becomes `{ type: "object", properties: {} }`; `metadata` is ignored; `returns` is `{ format: "json" }`. A `parameters` value that is not a JSON Schema object throws a `TypeError`.
 
+### Microsoft Agent Framework (.NET)
+
+A C# exporter turns the `AIFunctionDeclaration` tools of an MAF agent (name, description, argument and return JSON Schema) into the tools-json format that `aik manifest --from tools-json` reads. See [`examples/maf-dotnet`](https://github.com/DevJoaoLopes/agent-interaction-kit/tree/main/examples/maf-dotnet).
+
 ### Frontend tool contracts
 
 `defineToolContract` declares a tool once, from a Zod 4 (or any Standard JSON Schema) schema. It returns the config that CopilotKit's v2 hooks accept and the `ConsumerRequirement` for `aik.consumer.json`.

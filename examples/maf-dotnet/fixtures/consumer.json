@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0.0",
+  "consumer": { "name": "weather-ui", "version": "1.0.0", "buildId": "fixture" },
+  "protocolProfile": "ag-ui@0.1",
+  "contextProfile": "default",
+  "requires": [
+    {
+      "toolName": "getWeather",
+      "executionSide": "backend",
+      "expectedParameters": {
+        "type": "object",
+        "properties": { "city": { "type": "string" } },
+        "required": ["city"]
+      }
+    },
+    {
+      "toolName": "confirmBooking",
+      "executionSide": "frontend",
+      "expectedParameters": {
+        "type": "object",
+        "properties": { "bookingId": { "type": "string" } },
+        "required": ["bookingId"]
+      }
+    }
+  ]
+}
