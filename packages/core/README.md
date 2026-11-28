@@ -161,6 +161,34 @@ aik check --provider <path> --consumer <path> [options]
 
 ---
 
+### Generate a manifest from a tool list
+
+```bash
+aik manifest --from <tools-json|ag-ui> <input.json> [options]
+```
+
+`aik manifest` writes a provider manifest from a JSON file of tool definitions, so you can export tools from any stack and keep `aik check` in CI. It exits `2` (and writes nothing) when the input is invalid.
+
+- `--from tools-json`: an array of tools, or an object with a `tools` array. Each tool has `name`, `description?`, `executionSide`, `parameters` (a JSON Schema object), `returns?` (`{ format?, schema? }`) and `requiresApproval?`. The object form can also carry `producer`, `protocolProfile`, `contextProfile` and `schemaVersion`.
+- `--from ag-ui`: an AG-UI `Tool[]`, or a `RunAgentInput` with a `tools` array. Tools default to `frontend`.
+
+| Option | Description | Default |
+| :--- | :--- | :--- |
+| `--execution-side <side>` | `backend` or `frontend`, for tools without one. Required for `tools-json` tools that do not set `executionSide` | `frontend` for `ag-ui` |
+| `--producer-name`, `--producer-version`, `--build-id` | Producer metadata; override the file. All three are required, from flags or from the file | none |
+| `--protocol-profile <profile>` | Protocol profile | `"ag-ui@0.1"` |
+| `--context-profile <profile>` | Context profile | `"default"` |
+| `--side <side>` | Manifest to generate; only `provider` is supported | `"provider"` |
+| `-o, --output <path>` | Write the manifest to a file (creates directories automatically) | stdout |
+
+```bash
+aik manifest --from ag-ui run-agent-input.json \
+  --producer-name booking-agent --producer-version 1.0.0 --build-id "$GIT_SHA" \
+  -o aik.provider.json
+```
+
+---
+
 ## 📦 Programmatic API
 
 AIK can also be imported as a library in Node.js / TypeScript:

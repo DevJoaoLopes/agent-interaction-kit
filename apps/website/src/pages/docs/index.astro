@@ -76,7 +76,11 @@ const displayVersion = isUnreleased ? "1.0.0-beta.1" : releaseInfo.version;
       agent, <code>exportProviderManifest</code> from <code>@agent-interaction-kit/mastra</code> builds
       <code>aik.provider.json</code> from the agent's tools (peer dependency <code
         >@mastra/core ^1.29</code
-      >).
+      >). To generate a provider manifest from a JSON file of tools (a generic tools list or an
+      AG-UI
+      <code>RunAgentInput</code>) without writing code, run <code
+        >aik manifest --from tools-json</code
+      > or <code>aik manifest --from ag-ui</code>.
     </p>
     <p>
       For a React frontend, declare each tool once with <code>defineToolContract</code> from <code

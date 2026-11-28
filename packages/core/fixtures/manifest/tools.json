@@ -1,0 +1,30 @@
+{
+  "producer": { "name": "weather-agent", "version": "1.2.0", "buildId": "git-a1b2c3" },
+  "protocolProfile": "ag-ui@0.1",
+  "contextProfile": "default",
+  "tools": [
+    {
+      "name": "getWeather",
+      "description": "Current weather for a city",
+      "executionSide": "backend",
+      "parameters": {
+        "type": "object",
+        "properties": { "city": { "type": "string" } },
+        "required": ["city"]
+      },
+      "returns": {
+        "schema": {
+          "type": "object",
+          "properties": { "temperature": { "type": "number" } },
+          "required": ["temperature"]
+        }
+      }
+    },
+    {
+      "name": "confirmBooking",
+      "executionSide": "frontend",
+      "requiresApproval": true,
+      "parameters": { "properties": { "bookingId": { "type": "string" } } }
+    }
+  ]
+}

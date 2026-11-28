@@ -1,0 +1,20 @@
+{
+  "threadId": "thread-1",
+  "runId": "run-1",
+  "messages": [],
+  "state": {},
+  "context": [],
+  "forwardedProps": {},
+  "tools": [
+    {
+      "name": "confirmBooking",
+      "description": "Ask the user to confirm a booking",
+      "parameters": {
+        "type": "object",
+        "properties": { "bookingId": { "type": "string" } },
+        "required": ["bookingId"]
+      }
+    },
+    { "name": "refreshView", "description": "Re-render the current view", "parameters": {} }
+  ]
+}
